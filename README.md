@@ -1,7 +1,5 @@
 # Delhi High Court Virtual Judge
 
-![Delhi High Court Virtual Judge](generated-icon.png)
-
 An advanced AI-powered virtual judge system that leverages fine-tuned LegalBERT for sophisticated legal document analysis and precedent matching in the Delhi High Court context.
 
 ## Project Overview
