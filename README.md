@@ -4,10 +4,6 @@
 
 An advanced AI-powered virtual judge system that leverages fine-tuned LegalBERT for sophisticated legal document analysis and precedent matching in the Delhi High Court context.
 
-<p align="center">
-  <img src="screenshots/system_overview.png" alt="System Overview" width="700"/>
-</p>
-
 ## Project Overview
 
 The Delhi High Court Virtual Judge is an innovative application of artificial intelligence in the legal domain, designed to assist legal professionals, researchers, and litigants in analyzing case patterns and predicting potential judgment outcomes. Built on state-of-the-art natural language processing technologies, this system analyzes legal documents, identifies similar precedent cases, and generates professional legal analysis with predicted outcomes.
