@@ -61,7 +61,7 @@ The system includes graceful degradation mechanisms to ensure functionality even
 
 2. Install dependencies:
    ```
-   pip install -r requirements.txt
+   pip install -r requirements_local.txt
    ```
 
 3. Run the application:
