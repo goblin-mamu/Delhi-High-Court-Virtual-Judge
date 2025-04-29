@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload</title>
+</head>
+<script src="{{ url_for('static', filename='script.js') }}" defer></script>
+<body>
+    <h1>Upload a File</h1>
+    <form method="POST" action="/upload" enctype="multipart/form-data">
+        <input type="file" name="file" required><br><br>
+        <input type="submit" value="Upload">
+    </form>
+
+    <div id="data-container">
+        </div>
+</body>
+</html>
