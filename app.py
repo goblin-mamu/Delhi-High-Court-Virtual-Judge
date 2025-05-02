@@ -21,7 +21,8 @@ except ImportError:
 st.set_page_config(
     page_title="Virtual Judge - Delhi High Court",
     page_icon="⚖️",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize session state variables if they don't exist
