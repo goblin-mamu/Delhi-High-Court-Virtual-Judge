@@ -25,6 +25,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+#st.markdown(
+#    """
+#    <style>
+#    .stApp {
+#        background-color: #d0f0c0; /* Light green background */
+#    }
+#    </style>
+#    """,
+#    unsafe_allow_html=True
+#)
+
 # Initialize session state variables if they don't exist
 if 'processed_document' not in st.session_state:
     st.session_state.processed_document = None
@@ -109,6 +120,22 @@ from utils.vector_store import VectorStore
 from utils.judgment_predictor import predict_judgment
 from utils.visualization import plot_case_similarity
 
+import base64
+
+main_bg = "bg.jpg"
+main_bg_ext = "jpg"
+
+st.markdown(
+    f"""
+    <style>
+    .reportview-container {{
+        background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()})
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Main content area with tabs
 tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Prediction"])#, "Search Cases", "Training"])
 
@@ -163,7 +190,7 @@ with tabs[0]:
 </div>
 """
 
-st.html(html_code)
+    st.html(html_code)
 
     #st.code(html_code,language="html")
 
