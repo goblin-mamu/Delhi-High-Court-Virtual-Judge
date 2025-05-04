@@ -25,17 +25,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-#st.markdown(
-#    """
-#    <style>
-#    .stApp {
-#        background-color: #d0f0c0; /* Light green background */
-#    }
-#    </style>
-#    """,
-#    unsafe_allow_html=True
-#)
-
 # Initialize session state variables if they don't exist
 if 'processed_document' not in st.session_state:
     st.session_state.processed_document = None
@@ -120,27 +109,22 @@ from utils.vector_store import VectorStore
 from utils.judgment_predictor import predict_judgment
 from utils.visualization import plot_case_similarity
 
-import base64
-
-main_bg = "bg.jpg"
-main_bg_ext = "jpg"
-
-st.markdown(
-    f"""
+# background color 
+st.markdown("""
     <style>
-    .reportview-container {{
-        background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()})
-    }}
+        .stApp {
+            background: linear-gradient(to right, #1d1a39, #e8bcb9);
+            color: black;
+        }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
+
 
 # Main content area with tabs
 tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Prediction"])#, "Search Cases", "Training"])
 
 with tabs[0]:
-    html_code = """
+   html_code = """
 <div style="
   display: flex;
   justify-content: space-between;
@@ -190,16 +174,72 @@ with tabs[0]:
 </div>
 """
 
-    st.html(html_code)
+st.html(html_code)
 
     #st.code(html_code,language="html")
 
 with tabs[1]:
-    html_code = """
-<h1 style="color: #7bbbff; align-items: center; font-size: 70px">ABOUT US</h1>
-<p style ="color: #f2fdff; justify-content: space-between; ">Virtual Court is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis. This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity. By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers. The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment. This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.</p>
-"""
-    st.markdown(html_code, unsafe_allow_html=True)
+   with tabs[1]:
+    st.markdown("""
+        <style>
+            .about-container {
+                background: linear-gradient(135deg, #1b263b 0%, #293b5f 100%);
+                border-radius: 30px;
+                padding: 50px 40px;
+                color: #f2fdff;
+                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+                font-family: 'Segoe UI', sans-serif;
+                max-width: 1000px;
+                margin: auto;
+                animation: fadeIn 1.5s ease-in-out;
+            }
+
+            .about-title {
+                font-size: 60px;
+                color: #7bbbff;
+                text-align: center;
+                margin-bottom: 30px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            }
+
+            .about-text {
+                font-size: 18px;
+                line-height: 1.75;
+                text-align: justify;
+                color: #e0f7ff;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @media (max-width: 768px) {
+                .about-title {
+                    font-size: 38px;
+                }
+                .about-text {
+                    font-size: 16px;
+                }
+            }
+        </style>
+
+        <div class="about-container">
+            <div class="about-title">ABOUT US</div>
+            <div class="about-text">
+                <strong>Virtual Court</strong> is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis.
+                <br><br>
+                This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity.
+                <br><br>
+                By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers.
+                <br><br>
+                The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment.
+                <br><br>
+                This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
 
 with tabs[2]:
     st.header("Upload Legal Document")
