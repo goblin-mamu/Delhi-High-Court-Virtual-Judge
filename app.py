@@ -125,56 +125,55 @@ tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Pre
 
 with tabs[0]:
    html_code = """
-<div style="
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(to right, rgba(123, 187, 255, 0.8), rgba(255, 255, 255, 0.8));
-  padding: 60px 80px;
-  border-radius: 40px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  font-family: 'Segoe UI', sans-serif;
-  backdrop-filter: blur(10px);
-">
-
-  <div style="flex: 1; padding-right: 50px;">
-    <h1 style="
-      color: #050f2a;
-      font-size: 60px;
-      margin: 0 0 20px;
-      line-height: 1.2;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    <div style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(to right, rgba(123, 187, 255, 0.8), rgba(255, 255, 255, 0.8));
+      padding: 60px 80px;
+      border-radius: 40px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      font-family: 'Segoe UI', sans-serif;
+      backdrop-filter: blur(10px);
     ">
-      Welcome to the <br> Virtual Court
-    </h1>
-    <p style="
-      color: #333;
-      font-size: 20px;
-      max-width: 500px;
-    ">
-      Experience the future of justice from the comfort of your screen.
-    </p>
-  </div>
 
-  <div style="flex: 1; text-align: right;">
-    <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg"
-         alt="Courtroom Image"
-         style="
-           max-width: 100%;
-           height: auto;
-           border-radius: 16px;
-           box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-           transition: transform 0.3s ease;
-         "
-         onmouseover="this.style.transform='scale(1.03)'"
-         onmouseout="this.style.transform='scale(1)'"
-    />
-  </div>
+      <div style="flex: 1; padding-right: 50px;">
+        <h1 style="
+          color: #050f2a;
+          font-size: 60px;
+          margin: 0 0 20px;
+          line-height: 1.2;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        ">
+          Welcome to the <br> Virtual Court
+        </h1>
+        <p style="
+          color: #333;
+          font-size: 20px;
+          max-width: 500px;
+        ">
+          Experience the future of justice from the comfort of your screen.
+        </p>
+      </div>
 
-</div>
-"""
+      <div style="flex: 1; text-align: right;">
+        <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg"
+             alt="Courtroom Image"
+             style="
+               max-width: 100%;
+               height: auto;
+               border-radius: 16px;
+               box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+               transition: transform 0.3s ease;
+             "
+             onmouseover="this.style.transform='scale(1.03)'"
+             onmouseout="this.style.transform='scale(1)'"
+        />
+      </div>
 
-st.html(html_code)
+    </div>
+    """
+   st.html(html_code)
 
     #st.code(html_code,language="html")
 
