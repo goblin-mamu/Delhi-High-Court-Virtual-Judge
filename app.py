@@ -38,11 +38,11 @@ if 'dependency_check' not in st.session_state:
     st.session_state.dependency_check = False
 
 # Title and description
-st.title("Delhi High Court Virtual Judge")
-st.markdown("""
-This application uses a fine-tuned LegalBERT model to analyze legal documents, find similar cases from the 
-Delhi High Court database, and predict potential judgments based on precedent.
-""")
+#st.title("Delhi High Court Virtual Judge")
+#st.markdown("""
+#This application uses a fine-tuned LegalBERT model to analyze legal documents, find similar cases from the 
+#Delhi High Court database, and predict potential judgments based on precedent.
+#""")
 
 # Sidebar for controls and system information
 st.sidebar.header("Settings")
@@ -110,9 +110,33 @@ from utils.judgment_predictor import predict_judgment
 from utils.visualization import plot_case_similarity
 
 # Main content area with tabs
-tabs = st.tabs(["Upload Document", "Similar Cases", "Judgment Prediction", "Search Cases", "Training"])
+tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Prediction"])#, "Search Cases", "Training"])
 
 with tabs[0]:
+    html_code = """
+<div style="display: flex; align-items: left; justify-content: space-between; background-color: #0c3b2e; padding: 200px; border-radius: 100px;">
+
+  <div style="flex: 1; padding-right: 100px;">
+    <h1 style="color: #a3bee2; align-items: left; font-size: 70px">Welcome to the Virtual Court</h1>
+  </div>
+
+  <div style="flex: 1; text-align: right;">
+    <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg" alt="Courtroom Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
+  </div>
+
+</div>
+"""
+    st.html(html_code)
+    #st.code(html_code,language="html")
+
+with tabs[1]:
+    html_code = """
+<h1 style="color: #0c3b2e; align-items: center; font-size: 70px">ABOUT US</h1>
+<p style ="color: #0c3b2e; justify-content: space-between; ">Virtual Court is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis. This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity. By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers. The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment. This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.</p>
+"""
+    st.markdown(html_code, unsafe_allow_html=True)
+
+with tabs[2]:
     st.header("Upload Legal Document")
     
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
@@ -186,7 +210,7 @@ with tabs[0]:
     else:
         st.info("Please upload a PDF document to begin analysis.")
 
-with tabs[1]:
+with tabs[3]:
     st.header("Similar Cases")
     
     if st.session_state.similar_cases is not None:
@@ -210,7 +234,7 @@ with tabs[1]:
     else:
         st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
 
-with tabs[2]:
+with tabs[4]:
     st.header("Judgment Prediction")
     
     if st.session_state.judgment_prediction is not None:
@@ -380,163 +404,164 @@ with tabs[2]:
     else:
         st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
 
-with tabs[3]:
-    st.header("Search Cases")
-    
-    search_query = st.text_input("Search for cases by keyword or phrase:", value=st.session_state.search_query)
-    
-    if st.button("Search") or search_query != st.session_state.search_query:
-        st.session_state.search_query = search_query
-        
-        if search_query:
-            with st.spinner("Searching cases..."):
-                # Initialize vector store and search for cases
-                vector_store = VectorStore()
-                search_results = vector_store.search_cases(search_query, top_k=10)
-                
-                if search_results:
-                    st.subheader(f"Found {len(search_results)} relevant cases")
-                    
-                    for i, case in enumerate(search_results):
-                        with st.expander(f"Case #{i+1}: {case['title']} (Relevance: {case['relevance_score']:.2f})"):
-                            st.markdown(f"**Case Number:** {case['case_number']}")
-                            st.markdown(f"**Date:** {case['date']}")
-                            st.markdown(f"**Judges:** {case['judges']}")
-                            st.markdown("**Summary:**")
-                            st.markdown(case['summary'])
-                else:
-                    st.info("No matching cases found. Try different keywords.")
-        else:
-            st.info("Enter keywords to search for relevant cases.")
+#with tabs[5]:
+#    st.header("Search Cases")
+#    
+#    search_query = st.text_input("Search for cases by keyword or phrase:", value=st.session_state.search_query)
+#    
+#    if st.button("Search") or search_query != st.session_state.search_query:
+#        st.session_state.search_query = search_query
+#        
+#        if search_query:
+#            with st.spinner("Searching cases..."):
+#                # Initialize vector store and search for cases
+#                vector_store = VectorStore()
+#                search_results = vector_store.search_cases(search_query, top_k=10)
+#                
+#                if search_results:
+#                    st.subheader(f"Found {len(search_results)} relevant cases")
+#                    
+#                    for i, case in enumerate(search_results):
+#                        with st.expander(f"Case #{i+1}: {case['title']} (Relevance: {case['relevance_score']:.2f})"):
+#                            st.markdown(f"**Case Number:** {case['case_number']}")
+#                            st.markdown(f"**Date:** {case['date']}")
+#                            st.markdown(f"**Judges:** {case['judges']}")
+#                            st.markdown("**Summary:**")
+#                            st.markdown(case['summary'])
+#                else:
+#                    st.info("No matching cases found. Try different keywords.")
+#        else:
+#            st.info("Enter keywords to search for relevant cases.")
 
-with tabs[4]:
-    st.header("Model Training")
-    
-    # Check if model is already trained
-    model_path = "./fine_tuned_model/best_model"
-    model_config_path = "./config/model_config.txt"
-    
-    if os.path.exists(model_path) and os.path.exists(model_config_path):
-        st.success("A trained model is already available!")
-        
-        # Read and display model config
-        with open(model_config_path, "r") as f:
-            config_lines = f.readlines()
-        
-        config = {}
-        for line in config_lines:
-            if "=" in line:
-                key, value = line.strip().split("=", 1)
-                config[key] = value
-        
-        st.markdown(f"**Model Type:** {config.get('model_type', 'Unknown')}")
-        st.markdown(f"**Training Date:** {config.get('trained_date', 'Unknown')}")
-        
-        if st.button("Retrain Model"):
-            st.warning("This will overwrite the existing model. The process may take several minutes depending on your system.")
-            st.info("Starting training process...")
-            
-            try:
-                import subprocess
-                process = subprocess.Popen([sys.executable, "run_training.py"], 
-                                        stdout=subprocess.PIPE, 
-                                        stderr=subprocess.STDOUT,
-                                        text=True)
-                
-                # Display output in real-time
-                output_area = st.empty()
-                output_text = ""
-                
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        output_text += output
-                        output_area.code(output_text)
-                
-                if process.returncode == 0:
-                    st.success("Training completed successfully! The application will use the new model for predictions.")
-                    st.info("Please restart the application to use the new model.")
-                else:
-                    st.error("Training failed. Please check the log for details.")
-            
-            except Exception as e:
-                st.error(f"Error during training: {str(e)}")
-    else:
-        st.info("No trained model found. You can train a model to improve prediction accuracy.")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("""
-            **Training Process:**
-            1. The system will download a sample of Delhi High Court judgments
-            2. Prepare and clean the data for model training
-            3. Train a model (this may take 10-15 minutes)
-            4. Integrate the trained model with the application
-            """)
-        
-        with col2:
-            st.markdown("""
-            **System Requirements:**
-            - At least 4GB of available RAM
-            - Internet connection to download judgments
-            - Approximately 500MB of disk space
-            """)
-        
-        if st.button("Start Training"):
-            st.info("Starting training process...")
-            
-            try:
-                import subprocess
-                process = subprocess.Popen([sys.executable, "run_training.py"], 
-                                        stdout=subprocess.PIPE, 
-                                        stderr=subprocess.STDOUT,
-                                        text=True)
-                
-                # Display output in real-time
-                output_area = st.empty()
-                output_text = ""
-                
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        output_text += output
-                        output_area.code(output_text)
-                
-                if process.returncode == 0:
-                    st.success("Training completed successfully! The application will use the new model for predictions.")
-                    st.info("Please restart the application to use the new model.")
-                else:
-                    st.error("Training failed. Please check the log for details.")
-            
-            except Exception as e:
-                st.error(f"Error during training: {str(e)}")
-                import traceback
-                st.code(traceback.format_exc())
+#with tabs[5]:
+#    st.header("Model Training")
+#    
+#    # Check if model is already trained
+#    model_path = "./fine_tuned_model/best_model"
+#    model_config_path = "./config/model_config.txt"
+#    
+#    if os.path.exists(model_path) and os.path.exists(model_config_path):
+#        st.success("A trained model is already available!")
+#        
+#        # Read and display model config
+#        with open(model_config_path, "r") as f:
+#            config_lines = f.readlines()
+#        
+#        config = {}
+#        for line in config_lines:
+#            if "=" in line:
+#                key, value = line.strip().split("=", 1)
+#                config[key] = value
+#        
+#        st.markdown(f"**Model Type:** {config.get('model_type', 'Unknown')}")
+#        st.markdown(f"**Training Date:** {config.get('trained_date', 'Unknown')}")
+#        
+#        if st.button("Retrain Model"):
+#            st.warning("This will overwrite the existing model. The process may take several minutes depending on your system.")
+#            st.info("Starting training process...")
+#            
+#            try:
+#                import subprocess
+#                process = subprocess.Popen([sys.executable, "run_training.py"], 
+#                                        stdout=subprocess.PIPE, 
+#                                        stderr=subprocess.STDOUT,
+#                                        text=True)
+#                
+#                # Display output in real-time
+#                output_area = st.empty()
+#                output_text = ""
+#                
+#                while True:
+#                    output = process.stdout.readline()
+#                    if output == '' and process.poll() is not None:
+#                        break
+#                    if output:
+#                        output_text += output
+#                        output_area.code(output_text)
+#                
+#                if process.returncode == 0:
+#                    st.success("Training completed successfully! The application will use the new model for predictions.")
+#                    st.info("Please restart the application to use the new model.")
+#                else:
+#                    st.error("Training failed. Please check the log for details.")
+#            
+#            except Exception as e:
+#                st.error(f"Error during training: {str(e)}")
+#    else:
+#        st.info("No trained model found. You can train a model to improve prediction accuracy.")
+#        
+#        col1, col2 = st.columns(2)
+#        
+#        with col1:
+#            st.markdown("""
+#            **Training Process:**
+#            1. The system will download a sample of Delhi High Court judgments
+#            2. Prepare and clean the data for model training
+#            3. Train a model (this may take 10-15 minutes)
+#            4. Integrate the trained model with the application
+#            """)
+#        
+#        with col2:
+#            st.markdown("""
+#            **System Requirements:**
+#            - At least 4GB of available RAM
+#            - Internet connection to download judgments
+#            - Approximately 500MB of disk space
+#            """)
+#        
+#        if st.button("Start Training"):
+#            st.info("Starting training process...")
+#            
+#            try:
+#                import subprocess
+#                process = subprocess.Popen([sys.executable, "run_training.py"], 
+#                                        stdout=subprocess.PIPE, 
+#                                        stderr=subprocess.STDOUT,
+#                                        text=True)
+#                
+#                # Display output in real-time
+#                output_area = st.empty()
+#                output_text = ""
+#                
+#                while True:
+#                    output = process.stdout.readline()
+#                    if output == '' and process.poll() is not None:
+#                        break
+#                    if output:
+#                        output_text += output
+#                        output_area.code(output_text)
+#                
+#                if process.returncode == 0:
+#                    st.success("Training completed successfully! The application will use the new model for predictions.")
+#                    st.info("Please restart the application to use the new model.")
+#                else:
+#                    st.error("Training failed. Please check the log for details.")
+#            
+#            except Exception as e:
+#                st.error(f"Error during training: {str(e)}")
+#                import traceback
+#                st.code(traceback.format_exc())
 
 # Footer information
-st.markdown("---")
-st.markdown("""
-**About this application:**  
-This Virtual Judge uses a fine-tuned LegalBERT model trained on Delhi High Court judgments to analyze legal documents
-and provide insights based on similar historical cases. The system leverages modern NLP techniques, vector embeddings,
-and similarity search to find relevant precedents.
-""")
+#st.markdown("---")
+#st.markdown("""
+#**About this application:**  
+#This Virtual Judge uses a fine-tuned LegalBERT model trained on Delhi High Court judgments to analyze legal documents
+#and provide insights based on similar historical cases. The system leverages modern NLP techniques, vector embeddings,
+#and similarity search to find relevant precedents.
+#""")
 
 # Add OpenAI attribution if it's available
-if OPENAI_AVAILABLE:
-    st.markdown("""
-    **Enhanced Analysis:**  
-    Professional legal analysis is enhanced using OpenAI's GPT-4o model, providing deeper legal context, 
-    detailed citations, and comprehensive legal reasoning based on the document content and case patterns.
-    """)
-else:
-    st.markdown("""
-    **Want Enhanced Analysis?**  
-    Add your OpenAI API key in the sidebar to enable GPT-4o powered legal analysis with deeper legal context,
-    relevant citations, and comprehensive professional reasoning.
-    """)
+#if OPENAI_AVAILABLE:
+#    st.markdown("""
+#    **Enhanced Analysis:**  
+#    Professional legal analysis is enhanced using OpenAI's GPT-4o model, providing deeper legal context, 
+#    detailed citations, and comprehensive legal reasoning based on the document content and case patterns.
+#    """)
+#else:
+#    st.markdown("""
+#    **Want Enhanced Analysis?**  
+#    Add your OpenAI API key in the sidebar to enable GPT-4o powered legal analysis with deeper legal context,
+#    relevant citations, and comprehensive professional reasoning.
+#    """)
+#
