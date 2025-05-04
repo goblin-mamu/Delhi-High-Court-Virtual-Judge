@@ -114,25 +114,63 @@ tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Pre
 
 with tabs[0]:
     html_code = """
-<div style="display: flex; align-items: left; justify-content: space-between; background-color: #0c3b2e; padding: 200px; border-radius: 100px;">
+<div style="
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to right, rgba(123, 187, 255, 0.8), rgba(255, 255, 255, 0.8));
+  padding: 60px 80px;
+  border-radius: 40px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+  backdrop-filter: blur(10px);
+">
 
-  <div style="flex: 1; padding-right: 100px;">
-    <h1 style="color: #a3bee2; align-items: left; font-size: 70px">Welcome to the Virtual Court</h1>
+  <div style="flex: 1; padding-right: 50px;">
+    <h1 style="
+      color: #050f2a;
+      font-size: 60px;
+      margin: 0 0 20px;
+      line-height: 1.2;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    ">
+      Welcome to the <br> Virtual Court
+    </h1>
+    <p style="
+      color: #333;
+      font-size: 20px;
+      max-width: 500px;
+    ">
+      Experience the future of justice from the comfort of your screen.
+    </p>
   </div>
 
   <div style="flex: 1; text-align: right;">
-    <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg" alt="Courtroom Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
+    <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg"
+         alt="Courtroom Image"
+         style="
+           max-width: 100%;
+           height: auto;
+           border-radius: 16px;
+           box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+           transition: transform 0.3s ease;
+         "
+         onmouseover="this.style.transform='scale(1.03)'"
+         onmouseout="this.style.transform='scale(1)'"
+    />
   </div>
 
 </div>
 """
-    st.html(html_code)
+
+st.html(html_code)
+
     #st.code(html_code,language="html")
 
 with tabs[1]:
     html_code = """
-<h1 style="color: #0c3b2e; align-items: center; font-size: 70px">ABOUT US</h1>
-<p style ="color: #0c3b2e; justify-content: space-between; ">Virtual Court is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis. This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity. By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers. The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment. This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.</p>
+<h1 style="color: #7bbbff; align-items: center; font-size: 70px">ABOUT US</h1>
+<p style ="color: #f2fdff; justify-content: space-between; ">Virtual Court is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis. This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity. By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers. The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment. This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.</p>
 """
     st.markdown(html_code, unsafe_allow_html=True)
 
