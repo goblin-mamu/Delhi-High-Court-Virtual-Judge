@@ -417,29 +417,54 @@ with tabs[3]:
     else:
         st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
 
+import streamlit.components.v1 as components
+
+# ... (your other imports would go here)
+
 with tabs[4]:
     st.markdown("""
-<style>
-.custom-header {
-    font-size: 45px;
-    font-weight: bold;
-    color: #050f2a;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-.subtext {
-    font-size: 20px;
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: -10px;
-}
-</style>
+    <style>
+    .custom-header {
+        font-size: 45px;
+        font-weight: bold;
+        color: #050f2a;
+        text-align: center;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    .subtext {
+        font-size: 20px;
+        color: #7f8c8d;
+        text-align: center;
+        margin-top: -10px;
+    }
+    /* Custom style for our judge container */
+    .judge-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0;
+        padding: 10px;
+        border-radius: 10px;
+        background-color: #f0f4f8;
+    }
+    /* Style for the speak button */
+    .speak-button {
+        background-color: #3a3a8c;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-align: center;
+        margin: 10px 0;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    </style>
 
-<div class="custom-header">Judgement Prediction</div>
-""", unsafe_allow_html=True)
+    <div class="custom-header">Judgement Prediction</div>
+    """, unsafe_allow_html=True)
 
-    if st.session_state.judgment_prediction is not None:
+    if st.session_state.get('judgment_prediction') is not None:
         st.subheader("Predicted Judgment")
         
         # Create tabs for different views of the judgment
@@ -451,7 +476,333 @@ with tabs[4]:
             
         judgment_tabs = st.tabs(tab_options)
         
+        # Get the judgment summary for the speaking judge
+        judgment_summary = f"""
+        Prediction: {st.session_state.judgment_prediction['prediction']}
+        Confidence Score: {st.session_state.judgment_prediction['confidence']:.2f}
+        
+        Key reasoning: {st.session_state.judgment_prediction['reasoning'][:200]}...
+        """
+        
+        # Create a container for the judge
         with judgment_tabs[0]:
+            # First add the judge mascot using HTML component
+            st.markdown("### Speaking Judge Mascot")
+            st.markdown("Click the button below to have the judge speak the judgment prediction.")
+            
+            # Create a container for the judge HTML component
+            judge_container = st.container()
+            
+            # Generate unique HTML for the speaking judge
+            judge_html = """
+            <div class="judge-container">
+              <div id="judge-component">
+                <svg id="judgeSvg" width="300" height="400" viewBox="0 0 300 400">
+                  <!-- Court Background -->
+                  <rect x="0" y="0" width="300" height="400" fill="#2a1506" />
+                  <rect x="20" y="20" width="260" height="200" fill="#402010" />
+                  <rect x="40" y="40" width="220" height="160" fill="#8B4513" />
+                  <path d="M50 50 L250 50 L250 190 L50 190 Z" fill="#5c2c0d" />
+                  
+                  <!-- Indian Flag -->
+                  <rect x="230" y="70" width="30" height="10" fill="#ffa652" />
+                  <rect x="230" y="80" width="30" height="10" fill="#fff" />
+                  <rect x="230" y="90" width="30" height="10" fill="#52a447" />
+                  <rect x="230" y="100" width="30" height="10" fill="#fff" />
+                  <rect x="230" y="110" width="30" height="10" fill="#ffa652" />
+                  
+                  <!-- Judge's Bench -->
+                  <rect x="50" y="200" width="200" height="180" fill="#4d2c09" />
+                  <rect x="60" y="210" width="180" height="160" fill="#754c24" rx="5" ry="5" />
+                  <rect x="70" y="220" width="160" height="30" fill="#5c391c" />
+                  
+                  <!-- Judge's Body / Robe -->
+                  <path class="judge-robe" d="M90 170 L90 350 L210 350 L210 170 C170 190 130 190 90 170 Z" fill="#000022" stroke="#333" stroke-width="1" />
+                  
+                  <!-- Judge's Red Tie -->
+                  <path d="M140 180 L130 250 L150 280 L170 250 L160 180 Z" fill="#cc0000" stroke="#aa0000" stroke-width="1" />
+                  <path d="M140 180 L160 180 L150 190 Z" fill="#aa0000" />
+                  
+                  <!-- Judge's Shirt/Collar -->
+                  <path d="M110 170 L190 170 L190 190 L110 190 Z" fill="white" stroke="#ddd" stroke-width="0.5" />
+                  <path d="M140 180 L140 220 L160 220 L160 180 Z" fill="white" stroke="#ddd" stroke-width="0.5" />
+
+                  <!-- Judge's Face -->
+                  <ellipse class="judge-face" cx="150" cy="110" rx="45" ry="50" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
+
+                  <!-- Judge's Ears -->
+                  <ellipse class="judge-face" cx="105" cy="110" rx="8" ry="15" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
+                  <ellipse class="judge-face" cx="195" cy="110" rx="8" ry="15" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
+
+                  <!-- Judge's Neck -->
+                  <path class="judge-face" d="M140 150 L140 180 L160 180 L160 150 Z" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
+                  
+                  <!-- Judge's Black Judicial Wig -->
+                  <!-- Wig Base -->
+                  <path class="judge-hair" d="M100 70 Q100 40 150 40 Q200 40 200 70 L200 120 Q200 130 190 130 L110 130 Q100 130 100 120 Z" fill="#111" stroke="#333" stroke-width="0.5" />
+                  
+                  <!-- Wig Curls - Top -->
+                  <path d="M105 50 Q110 40 115 50 Q120 40 125 50 Q130 40 135 50 Q140 40 145 50 Q150 40 155 50 Q160 40 165 50 Q170 40 175 50 Q180 40 185 50 Q190 40 195 50" fill="#222" stroke="#333" stroke-width="0.5" />
+                  
+                  <!-- Wig Curls - Sides -->
+                  <path d="M100 70 Q95 75 100 80 Q95 85 100 90 Q95 95 100 100 Q95 105 100 110 Q95 115 100 120" fill="#222" stroke="#333" stroke-width="0.5" />
+                  <path d="M200 70 Q205 75 200 80 Q205 85 200 90 Q205 95 200 100 Q205 105 200 110 Q205 115 200 120" fill="#222" stroke="#333" stroke-width="0.5" />
+                  
+                  <!-- Judge's Eyes with tensed expression -->
+                  <ellipse cx="135" cy="100" rx="8" ry="5" fill="white" stroke="black" stroke-width="1" />
+                  <ellipse cx="165" cy="100" rx="8" ry="5" fill="white" stroke="black" stroke-width="1" />
+                  <circle cx="135" cy="100" r="3" />
+                  <circle cx="165" cy="100" r="3" />
+                  <circle cx="134" cy="99" r="1" fill="white" />
+                  <circle cx="164" cy="99" r="1" fill="white" />
+                  
+                  <!-- Judge's Eyebrows - tensed expression -->
+                  <path d="M120 85 Q135 80 150 85" stroke="black" stroke-width="2" fill="none" />
+                  <path d="M150 85 Q165 80 180 85" stroke="black" stroke-width="2" fill="none" />
+                  
+                  <!-- Judge's Nose -->
+                  <path d="M150 105 L145 120 L155 120 Z" stroke="#d4b6a0" stroke-width="1" fill="#e6c7b3" />
+                  
+                  <!-- Stress lines on forehead -->
+                  <path d="M130 75 L140 78" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
+                  <path d="M160 78 L170 75" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
+                  <path d="M145 70 L155 70" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
+                  
+                  <!-- Judge's Mouth (will be animated) -->
+                  <path id="mouth" class="mouth" d="M135 135 Q150 140 165 135" stroke="#a87b6d" stroke-width="1.5" fill="none" />
+                  
+                  <!-- Judge's Gavel in hand -->
+                  <path d="M190 300 Q200 290 210 300 L220 320 Q210 330 200 320 Z" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" /><!-- Hand -->
+                  <rect id="gavel-handle" x="200" y="285" width="8" height="50" rx="2" fill="#5c2c0d" stroke="#3d1d08" stroke-width="0.5" />
+                  <path id="gavel-head" d="M190 275 L220 275 L220 285 L190 285 Z" fill="#8b4513" stroke="#5c2c0d" stroke-width="0.5" />
+                </svg>
+                
+                <div id="speechBubble" style="position: absolute; top: 30px; right: -150px; background-color: white; border-radius: 20px; padding: 15px; width: 200px; min-height: 80px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: none; z-index: 10; font-family: 'Georgia', serif; font-style: italic;">
+                  <p id="speechText"></p>
+                </div>
+              </div>
+              
+              <button id="speakButton" style="padding: 12px 20px; background-color: #3a3a8c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px;">Have Judge Announce Verdict</button>
+              <p id="status" style="font-style: italic; color: #444; margin-top: 5px;">Ready to speak</p>
+            </div>
+
+            <script>
+              // Store the judgment text for the speech
+              const judgmentText = `""" + judgment_summary.replace("`", "'").replace("\"", "'") + """`;
+              
+              // Get the speech bubble and other elements
+              const speechBubble = document.getElementById('speechBubble');
+              const speechText = document.getElementById('speechText');
+              const speakButton = document.getElementById('speakButton');
+              const mouth = document.getElementById('mouth');
+              const status = document.getElementById('status');
+              const gavelHead = document.getElementById('gavel-head');
+              const gavelHandle = document.getElementById('gavel-handle');
+              
+              // Check if browser supports speech synthesis
+              const synth = window.speechSynthesis;
+              let speaking = false;
+              
+              // Animation frames for mouth movement with more natural curves
+              const mouthClosed = "M135 135 Q150 140 165 135";
+              const mouthOpen = "M135 135 Q150 155 165 135";
+              const mouthHalfOpen = "M135 135 Q150 145 165 135";
+              const mouthTense = "M135 138 Q150 136 165 138";
+              
+              // Get all voices and select a deep male voice if available
+              let voices = [];
+              function populateVoiceList() {
+                voices = synth.getVoices();
+              }
+              
+              if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = populateVoiceList;
+              }
+              populateVoiceList();
+              
+              // Function to find the best judicial voice (deep male voice)
+              function findJudicialVoice() {
+                // Default to first voice
+                let judicialVoice = voices[0];
+                
+                // Try to find a deep male English voice
+                for (let voice of voices) {
+                  if (voice.lang.includes('en') && voice.name.toLowerCase().includes('male')) {
+                    judicialVoice = voice;
+                    break;
+                  }
+                }
+                
+                return judicialVoice;
+              }
+              
+              speakButton.addEventListener('click', () => {
+                if (speaking) {
+                  synth.cancel();
+                  resetJudge();
+                  return;
+                }
+                
+                // Show speech bubble with text
+                speechText.textContent = judgmentText;
+                speechBubble.style.display = 'block';
+                
+                // Update button text
+                speakButton.textContent = "Stop Speaking";
+                
+                // Animate the judge
+                speaking = true;
+                status.textContent = "Judge is speaking...";
+                
+                // Start mouth and eyebrow animations
+                animateMouth();
+                animateEyebrows();
+                
+                // Use speech synthesis if available
+                if (synth) {
+                  const utterance = new SpeechSynthesisUtterance(judgmentText);
+                  utterance.rate = 0.85; // Slower for judge-like gravitas
+                  utterance.pitch = 0.7; // Deeper voice
+                  
+                  // Try to use a judicial voice
+                  const judicialVoice = findJudicialVoice();
+                  if (judicialVoice) {
+                    utterance.voice = judicialVoice;
+                  }
+                  
+                  utterance.onend = () => {
+                    resetJudge();
+                  };
+                  
+                  // Add gavel animation
+                  gavelInterval = setInterval(animateGavel, 1500);
+                  
+                  // Add word boundary event to sync mouth with speech
+                  utterance.onboundary = (event) => {
+                    if (event.name === 'word') {
+                      // Open mouth more at the beginning of each word
+                      mouth.setAttribute('d', mouthOpen);
+                      setTimeout(() => {
+                        if (speaking) {
+                          mouth.setAttribute('d', Math.random() > 0.5 ? mouthHalfOpen : mouthClosed);
+                        }
+                      }, 100);
+                    }
+                  };
+                  
+                  synth.speak(utterance);
+                } else {
+                  // If speech synthesis is not available, just animate for a few seconds
+                  setTimeout(resetJudge, 5000);
+                }
+              });
+              
+              // More natural lip-synced mouth animation
+              function animateMouth() {
+                if (!speaking) return;
+                
+                // More realistic speaking pattern
+                const mouthPositions = [
+                  mouthOpen, mouthHalfOpen, mouthClosed, mouthHalfOpen, 
+                  mouthOpen, mouthClosed, mouthTense, mouthHalfOpen
+                ];
+                
+                const randomIndex = Math.floor(Math.random() * mouthPositions.length);
+                mouth.setAttribute('d', mouthPositions[randomIndex]);
+                
+                // Vary the animation speed for more natural speech
+                const animationSpeed = 80 + Math.random() * 120;
+                setTimeout(animateMouth, animationSpeed);
+              }
+              
+              // Add eyebrow animation for tensed expression
+              function animateEyebrows() {
+                if (!speaking) return;
+                
+                const eyebrows = document.querySelectorAll('path[stroke="black"][stroke-width="2"]');
+                
+                // Create tensed expressions by moving eyebrows
+                if (Math.random() > 0.7) {
+                  // More furrowed brow
+                  eyebrows[0].setAttribute('d', 'M120 83 Q135 78 150 83');
+                  eyebrows[1].setAttribute('d', 'M150 83 Q165 78 180 83');
+                } else if (Math.random() > 0.4) {
+                  // Slightly raised eyebrows for emphasis
+                  eyebrows[0].setAttribute('d', 'M120 82 Q135 76 150 82');
+                  eyebrows[1].setAttribute('d', 'M150 82 Q165 76 180 82');
+                } else {
+                  // Return to neutral-tense
+                  eyebrows[0].setAttribute('d', 'M120 85 Q135 80 150 85');
+                  eyebrows[1].setAttribute('d', 'M150 85 Q165 80 180 85');
+                }
+                
+                // Continue animation while speaking
+                setTimeout(animateEyebrows, 800 + Math.random() * 700);
+              }
+              
+              // Reset judge to original state
+              function resetJudge() {
+                speaking = false;
+                mouth.setAttribute('d', mouthTense); // Keep tense expression when not speaking
+                speechBubble.style.display = 'none';
+                speakButton.textContent = "Have Judge Announce Verdict";
+                status.textContent = "Ready to speak";
+                
+                // Reset eyebrows to tense position
+                const eyebrows = document.querySelectorAll('path[stroke="black"][stroke-width="2"]');
+                eyebrows[0].setAttribute('d', 'M120 85 Q135 80 150 85');
+                eyebrows[1].setAttribute('d', 'M150 85 Q165 80 180 85');
+                
+                // Reset gavel
+                clearInterval(gavelInterval);
+                gavelHead.setAttribute('transform', '');
+                gavelHandle.setAttribute('transform', '');
+              }
+              
+              // Improved gavel animation with the gavel in hand
+              let gavelInterval;
+              
+              function animateGavel() {
+                if (!speaking) return;
+                
+                // Rotate gavel for striking motion
+                gavelHead.setAttribute('transform', 'rotate(-30 190 280)');
+                gavelHandle.setAttribute('transform', 'rotate(-30 190 280)');
+                
+                setTimeout(() => {
+                  // Return to normal position
+                  gavelHead.setAttribute('transform', '');
+                  gavelHandle.setAttribute('transform', '');
+                  
+                  // Optional: Add strike effect (visual flash)
+                  const flash = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                  flash.setAttribute("x", "180");
+                  flash.setAttribute("y", "265");
+                  flash.setAttribute("width", "50");
+                  flash.setAttribute("height", "20");
+                  flash.setAttribute("fill", "white");
+                  flash.setAttribute("opacity", "0.6");
+                  document.getElementById("judgeSvg").appendChild(flash);
+                  
+                  // Remove flash effect after a short time
+                  setTimeout(() => {
+                    if (flash.parentNode) {
+                      flash.parentNode.removeChild(flash);
+                    }
+                  }, 100);
+                }, 200);
+              }
+              
+              // Set initial tensed expression
+              window.onload = function() {
+                mouth.setAttribute('d', mouthTense);
+              }
+            </script>
+            """
+            
+            # Inject HTML component into the Streamlit app
+            components.html(judge_html, height=500)
+            
             # Display confidence score
             st.markdown(f"**Confidence Score:** {st.session_state.judgment_prediction['confidence']:.2f}")
             
@@ -471,7 +822,7 @@ with tabs[4]:
             case_type = st.session_state.judgment_prediction.get('case_type', 'General Case')
             
             # Display case type context with OpenAI if available
-            if OPENAI_AVAILABLE:
+            if 'OPENAI_AVAILABLE' in globals() and OPENAI_AVAILABLE:
                 try:
                     with st.expander("Legal context for this case type", expanded=True):
                         case_context = get_legal_context(case_type, "Delhi High Court")
@@ -488,6 +839,7 @@ with tabs[4]:
             for precedent in st.session_state.judgment_prediction['precedents']:
                 st.markdown(f"- **{precedent['case']}**: {precedent['relevance']}")
         
+        # The remaining tabs are unchanged from the original code
         with judgment_tabs[1]:
             # Display liability determination
             if 'liability_determination' in st.session_state.judgment_prediction:
@@ -605,7 +957,6 @@ with tabs[4]:
         """)
     else:
         st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
-
 #with tabs[5]:
 #    st.header("Search Cases")
 #    
