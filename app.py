@@ -17,9 +17,15 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Import other dependencies
+from utils.pdf_processor import extract_text_from_pdf
+from utils.vector_store import VectorStore
+from utils.judgment_predictor import predict_judgment
+from utils.visualization import plot_case_similarity
+
 # Set page configuration
 st.set_page_config(
-    page_title="Virtual Judge - Delhi High Court",
+    page_title="Delhi HC Virtual Judge",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -36,15 +42,723 @@ if 'search_query' not in st.session_state:
     st.session_state.search_query = ""
 if 'dependency_check' not in st.session_state:
     st.session_state.dependency_check = False
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = "Home"
 
-# Title and description
-#st.title("Delhi High Court Virtual Judge")
-#st.markdown("""
-#This application uses a fine-tuned LegalBERT model to analyze legal documents, find similar cases from the 
-#Delhi High Court database, and predict potential judgments based on precedent.
-#""")
+# Apply custom theme with CSS - Enhanced based on requirements
+st.markdown("""
+<style>
+    /* Import premium fonts - Poppins and Inter for professional look */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Animated Background Canvas for particles effect */
+    #particles-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        opacity: 0.3;
+    }
+    
+    /* Base styles for dark mode app */
+    .stApp {
+        background-color: #0e141e;
+        background-image: radial-gradient(circle at 10% 20%, #141e30 0%, #0e1420 90%);
+        font-family: 'Poppins', 'Inter', sans-serif;
+        color: #e6e7eb;
+        overflow-x: hidden;
+    }
+    
+    /* Typography enhancements */
+    h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: white !important;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+    
+    p, div, span, .stMarkdown p {
+        font-family: 'Inter', sans-serif;
+        line-height: 1.6;
+        font-size: 16px;
+    }
+    
+    /* Gold accent color - primary highlight */
+    .gold-accent {
+        color: #FFD700 !important;
+    }
+    
+    /* Premium button styling with enhanced hover effects */
+    .stButton button {
+        background: linear-gradient(135deg, #FFD700 0%, #e6b800 100%) !important;
+        color: #0e141e !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        padding: 0.6rem 1.8rem !important;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        text-transform: none !important;
+        font-size: 16px !important;
+        font-family: 'Poppins', sans-serif !important;
+        letter-spacing: 0.3px !important;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 7px 20px rgba(255, 215, 0, 0.4) !important;
+        filter: brightness(1.05) !important;
+    }
+    
+    .stButton button:active {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4) !important;
+    }
+    
+    /* Secondary button (ghost) styling */
+    .stButton [data-testid="baseButton-secondary"] {
+        background: transparent !important;
+        border: 2px solid #FFD700 !important;
+        color: #FFD700 !important;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15) !important;
+    }
+    
+    .stButton [data-testid="baseButton-secondary"]:hover {
+        background-color: rgba(255, 215, 0, 0.1) !important;
+        border-color: #FFD700 !important;
+        color: #FFD700 !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 7px 15px rgba(255, 215, 0, 0.2) !important;
+    }
+    
+    /* Hide default elements */
+    footer {display: none !important;}
+    #MainMenu {visibility: hidden;}
+    
+    /* Premium glassmorphism container styling */
+    .content-container {
+        background: rgba(22, 28, 43, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 35px;
+        margin-bottom: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        transition: all 0.4s ease;
+    }
+    
+    .content-container:hover {
+        box-shadow: 0 15px 60px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 215, 0, 0.05);
+        border: 1px solid rgba(255, 215, 0, 0.1);
+    }
+    
+    /* Enhanced feature cards with premium hover effects */
+    .feature-card {
+        background: rgba(22, 28, 43, 0.7);
+        border-radius: 16px;
+        padding: 32px;
+        height: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 0 7px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, transparent 0%, rgba(255, 215, 0, 0.03) 100%);
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.15);
+    }
+    
+    .feature-card:hover::before {
+        opacity: 1;
+    }
+    
+    /* Icon animations for feature cards */
+    .feature-icon {
+        font-size: 42px;
+        color: #FFD700;
+        margin-bottom: 24px;
+        display: inline-block;
+        transition: all 0.5s ease;
+    }
+    
+    .feature-card:hover .feature-icon {
+        transform: scale(1.1) rotate(5deg);
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+    }
+    
+    /* Enhanced subtitle text styling */
+    .subtitle {
+        color: #a0aec0 !important;
+        font-size: 1.15rem;
+        line-height: 1.7;
+        font-weight: 400;
+    }
+    
+    /* Premium metrics styling */
+    [data-testid="stMetricValue"] {
+        font-size: 2.4rem !important;
+        font-weight: 700 !important;
+        background: linear-gradient(to right, #FFD700, #FFC107) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    [data-testid="stMetricDelta"] {
+        font-size: 1rem !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-weight: 500 !important;
+        color: #a0aec0 !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    /* Enhanced tab buttons styling */
+    button[data-testid="baseButton-secondary"] {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        border-radius: 12px !important;
+        font-weight: 500 !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    button[data-testid="baseButton-secondary"]:hover {
+        background-color: rgba(255, 215, 0, 0.1) !important;
+        border-color: #FFD700 !important;
+        color: #FFD700 !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    button[data-testid="baseButton-primary"] {
+        background-color: rgba(255, 215, 0, 0.15) !important;
+        border-color: #FFD700 !important;
+        color: #FFD700 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Animated blinking cursor */
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    
+    .cursor {
+        display: inline-block;
+        width: 3px;
+        height: 38px;
+        background-color: #FFD700;
+        margin-left: 5px;
+        animation: blink 1s infinite;
+        position: relative;
+        top: 8px;
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+    }
+    
+    /* Text reveal animation */
+    @keyframes revealText {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    .reveal-text {
+        opacity: 0;
+        animation: revealText 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+    
+    .reveal-delay-1 { animation-delay: 0.1s; }
+    .reveal-delay-2 { animation-delay: 0.3s; }
+    .reveal-delay-3 { animation-delay: 0.5s; }
+    .reveal-delay-4 { animation-delay: 0.7s; }
+    
+    /* Typing animation for headings */
+    @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
+    }
+    
+    .typing-text {
+        display: inline-block;
+        overflow: hidden;
+        white-space: nowrap;
+        animation: typing 2.5s steps(40, end);
+    }
+    
+    /* Enhanced form elements styling */
+    .stTextArea textarea, .stTextInput input {
+        background-color: rgba(22, 28, 43, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        color: #e6e7eb !important;
+        padding: 14px !important;
+        font-family: 'Inter', sans-serif !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTextArea textarea:focus, .stTextInput input:focus {
+        border-color: rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.15) !important;
+        background-color: rgba(22, 28, 43, 0.9) !important;
+    }
+    
+    /* Enhanced file uploader styling */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(22, 28, 43, 0.7) !important;
+        border: 2px dashed rgba(255, 215, 0, 0.3) !important;
+        border-radius: 16px !important;
+        padding: 25px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        border-color: rgba(255, 215, 0, 0.5) !important;
+        background-color: rgba(22, 28, 43, 0.8) !important;
+    }
+    
+    /* Enhanced alert boxes */
+    .stSuccess, .stInfo, .stWarning, .stError {
+        border-radius: 12px !important;
+        padding: 20px !important;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    /* Progress bar styling */
+    .stProgress > div > div {
+        background-color: rgba(255, 215, 0, 0.8) !important;
+        background-image: linear-gradient(45deg, rgba(255, 215, 0, 0.8) 25%, transparent 25%, transparent 50%, rgba(255, 215, 0, 0.8) 50%, rgba(255, 215, 0, 0.8) 75%, transparent 75%, transparent) !important;
+        background-size: 1rem 1rem !important;
+        animation: progress-bar-stripes 1s linear infinite !important;
+    }
+    
+    @keyframes progress-bar-stripes {
+        0% { background-position: 1rem 0; }
+        100% { background-position: 0 0; }
+    }
+    
+    /* Rotating glow animation for highlighted elements */
+    @keyframes rotatingGlow {
+        0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+        100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+    }
+    
+    /* Neon gavel floating animation */
+    @keyframes floatEffect {
+        0% { filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6)); transform: translateY(0); }
+        50% { filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.8)); transform: translateY(-7px); }
+        100% { filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6)); transform: translateY(0); }
+    }
+    
+    .glow-effect {
+        animation: rotatingGlow 3s infinite;
+    }
+</style>
 
-# Sidebar for controls and system information
+<!-- Particles animation for background using vanilla JS -->
+<canvas id="particles-canvas"></canvas>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var canvas = document.getElementById('particles-canvas');
+        var ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        var particles = [];
+        var particleCount = 100;
+        
+        for (var i = 0; i < particleCount; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 2 + 1,
+                color: 'rgba(255, 215, 0, ' + (Math.random() * 0.15 + 0.05) + ')',
+                speedX: Math.random() * 0.5 - 0.25,
+                speedY: Math.random() * 0.5 - 0.25
+            });
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (var i = 0; i < particleCount; i++) {
+                var particle = particles[i];
+                
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = particle.color;
+                ctx.fill();
+                
+                // Draw connections between nearby particles
+                for (var j = i + 1; j < particleCount; j++) {
+                    var particle2 = particles[j];
+                    var dx = particle.x - particle2.x;
+                    var dy = particle.y - particle2.y;
+                    var distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(255, 215, 0, ' + (0.1 - distance/1000) + ')';
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(particle.x, particle.y);
+                        ctx.lineTo(particle2.x, particle2.y);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Update particle position
+                particle.x += particle.speedX;
+                particle.y += particle.speedY;
+                
+                // Bounce off edges
+                if (particle.x < 0 || particle.x > canvas.width) {
+                    particle.speedX = -particle.speedX;
+                }
+                if (particle.y < 0 || particle.y > canvas.height) {
+                    particle.speedY = -particle.speedY;
+                }
+            }
+            
+            requestAnimationFrame(draw);
+        }
+        
+        draw();
+    });
+</script>
+""", unsafe_allow_html=True)
+
+# Top header row with logo and navigation
+st.markdown("""
+<div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <div style="margin-right: 15px;">
+        <img src="https://i.imgur.com/YqcwkC4.png" width="42" alt="gavel icon" style="filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.7));" />
+    </div>
+    <div>
+        <div style="font-weight: bold; color: #FFD700;">Virtual Judge</div>
+        <div style="font-size: 0.8rem; color: #a0aec0;">AI Legal Assistant</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Navigation tabs using Streamlit components
+col1, col2, col3, col4, col5 = st.columns(5)
+
+# Create tab buttons
+if col1.button("Home", key="tab_home", use_container_width=True, 
+              type="primary" if st.session_state.active_tab == "Home" else "secondary"):
+    st.session_state.active_tab = "Home"
+    st.rerun()
+    
+if col2.button("Dashboard", key="tab_dashboard", use_container_width=True, 
+              type="primary" if st.session_state.active_tab == "Dashboard" else "secondary"):
+    st.session_state.active_tab = "Dashboard"
+    st.rerun()
+    
+if col3.button("Upload", key="tab_upload", use_container_width=True, 
+              type="primary" if st.session_state.active_tab == "Upload" else "secondary"):
+    st.session_state.active_tab = "Upload"
+    st.rerun()
+    
+if col4.button("Analysis", key="tab_analysis", use_container_width=True, 
+              type="primary" if st.session_state.active_tab == "Analysis" else "secondary"):
+    st.session_state.active_tab = "Analysis"
+    st.rerun()
+    
+if col5.button("Judge", key="tab_judge", use_container_width=True, 
+              type="primary" if st.session_state.active_tab == "Judge" else "secondary"):
+    st.session_state.active_tab = "Judge"
+    st.rerun()
+
+# Divider
+st.markdown("<hr style='border: none; height: 1px; background-color: rgba(255, 255, 255, 0.1); margin: 20px 0;'>", unsafe_allow_html=True)
+
+# Show content based on active tab
+if st.session_state.active_tab == "Home":
+    # Hero Section - Home Tab
+    left_col, right_col = st.columns([3, 2])
+    
+    with left_col:
+        st.markdown("""
+        <div class="content-container glass-effect glow-effect" style="padding: 45px;">
+            <div style="margin-bottom: 28px;">
+                <h1 style="font-size: 3.8rem; font-weight: 700; line-height: 1.2; letter-spacing: -1px;">
+                    <span class="typing-text reveal-text reveal-delay-1" style="color: white;">AI-Powered</span><br>
+                    <span class="reveal-text reveal-delay-2" style="color: #FFD700;">|Virtual Judge|</span>
+                    <span class="cursor"></span>
+                </h1>
+            </div>
+            
+            <p class="subtitle reveal-text reveal-delay-3" style="margin-bottom: 35px; font-size: 1.15rem; line-height: 1.6; color: #a0aec0;">
+                Experience the future of legal analysis with our AI-driven legal assistance platform. Upload your case documents and receive instant insights and predictions.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Upload Case Files", use_container_width=True):
+                st.session_state.active_tab = "Upload"
+                st.rerun()
+                
+        with col2:
+            if st.button("Consult Virtual Judge", use_container_width=True, type="secondary"):
+                st.session_state.active_tab = "Judge"
+                st.rerun()
+    
+    with right_col:
+        # Enhanced logo with animation effects
+        st.markdown("""
+        <div class="content-container glass-effect" style="text-align: center; padding: 35px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="reveal-text reveal-delay-1" style="font-size: 75px; margin-bottom: 20px; animation: floatEffect 3s infinite;">
+                <img src="https://i.imgur.com/YqcwkC4.png" width="160" alt="gavel icon" style="filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.7)); transition: all 0.5s ease;" />
+            </div>
+            <h3 class="reveal-text reveal-delay-2" style="color: #FFD700; margin-bottom: 10px; font-weight: 600; font-size: 1.8rem;">Virtual Judge</h3>
+            <p class="reveal-text reveal-delay-3" style="color: #a0aec0; font-weight: 300;">AI-Powered Legal Analysis</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Enhanced feature cards with premium animations and styling
+    st.markdown("<div class='reveal-text reveal-delay-4'><br></div>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="feature-card reveal-text reveal-delay-4" style="text-align: center; height: 230px;">
+            <div class="feature-icon">
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 10px 25px rgba(255, 215, 0, 0.2);">   
+                    <img src="https://img.icons8.com/fluency/96/scales.png" width="60" alt="scales icon" style="transform: translateY(-2px);" />
+                </div>
+            </div>
+            <h3 style="color: white; margin-bottom: 14px; font-size: 1.45rem; font-weight: 600;">Legal Analysis</h3>
+            <p style="color: #a0aec0; font-size: 0.95rem; line-height: 1.5;">AI-powered analysis of legal documents and case files with intelligent reasoning</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown("""
+        <div class="feature-card reveal-text reveal-delay-5" style="text-align: center; height: 230px;">
+            <div class="feature-icon">
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 10px 25px rgba(255, 215, 0, 0.2);">   
+                    <img src="https://img.icons8.com/fluency/96/search.png" width="60" alt="search icon" style="transform: translateY(-2px);" />
+                </div>
+            </div>
+            <h3 style="color: white; margin-bottom: 14px; font-size: 1.45rem; font-weight: 600;">Case Similarity</h3>
+            <p style="color: #a0aec0; font-size: 0.95rem; line-height: 1.5;">Find similar cases in our comprehensive database for precedent research</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        st.markdown("""
+        <div class="feature-card reveal-text reveal-delay-6" style="text-align: center; height: 230px;">
+            <div class="feature-icon">
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 10px 25px rgba(255, 215, 0, 0.2);">   
+                    <img src="https://img.icons8.com/fluency/96/bot.png" width="60" alt="robot icon" style="transform: translateY(-2px);" />
+                </div>
+            </div>
+            <h3 style="color: white; margin-bottom: 14px; font-size: 1.45rem; font-weight: 600;">AI Predictions</h3>
+            <p style="color: #a0aec0; font-size: 0.95rem; line-height: 1.5;">Get judgment predictions based on case facts and established legal precedents</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.active_tab == "Dashboard":
+    st.header("Dashboard")
+    st.write("View your recent case history and analysis results")
+    
+    # Placeholder metrics
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Cases Analyzed", "24")
+    col2.metric("Success Rate", "78%")
+    col3.metric("Avg. Similarity", "0.82")
+    col4.metric("AI Predictions", "92% Accurate")
+
+elif st.session_state.active_tab == "Upload":
+    st.header("Upload Legal Document")
+    st.write("Upload your case file to analyze and get AI-powered insights")
+
+    uploaded_file = st.file_uploader("Choose PDF", type=["pdf"])
+
+    if uploaded_file is not None:
+        st.success("✅ PDF uploaded successfully!")
+
+        with st.spinner("Processing document..."):
+            # Save the uploaded file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(uploaded_file.getvalue())
+                tmp_file_path = tmp_file.name
+
+            try:
+                # Extract text from PDF
+                document_text = extract_text_from_pdf(tmp_file_path)
+
+                # Display document preview
+                st.subheader("Document Preview")
+                preview_text = document_text[:1000] + "..." if len(document_text) > 1000 else document_text
+                st.text_area("Document Content (Preview)", preview_text, height=250)
+
+                # Generate document summary with OpenAI if available
+                if OPENAI_AVAILABLE:
+                    with st.spinner("Generating document summary with GPT-4o..."):
+                        try:
+                            summary = generate_summary(document_text, max_words=300)
+                            st.subheader("AI-Generated Document Summary")
+                            st.info(summary)
+                        except Exception as e:
+                            st.error(f"Error generating document summary: {str(e)}")
+
+                # Save processed document in session state for other tabs
+                st.session_state.processed_document = document_text
+
+                # Initialize vector store and find similar cases
+                vector_store = VectorStore()
+                st.session_state.similar_cases = vector_store.find_similar_cases(document_text, top_k=5)
+
+                # Generate judgment prediction
+                st.session_state.judgment_prediction = predict_judgment(document_text, st.session_state.similar_cases)
+
+                # If OpenAI is available, enhance the analysis with GPT-4o
+                if OPENAI_AVAILABLE and 'judgment_prediction' in st.session_state:
+                    with st.spinner("Enhancing analysis with GPT-4o..."):
+                        try:
+                            enhanced_analysis = enhance_legal_analysis(
+                                document_text=document_text,
+                                predicted_outcome=st.session_state.judgment_prediction['prediction'],
+                                confidence=st.session_state.judgment_prediction['confidence'],
+                                legal_principles=st.session_state.judgment_prediction['legal_principles'],
+                                liability_determination=st.session_state.judgment_prediction['liability_determination']
+                            )
+                            
+                            # Save in session state
+                            st.session_state.enhanced_analysis = enhanced_analysis
+                            
+                        except Exception as e:
+                            st.error(f"Error enhancing analysis with GPT-4o: {str(e)}")
+                            st.session_state.enhanced_analysis = None
+
+                st.success("Document processed successfully! Navigate to the 'Analysis' and 'Judge' tabs to see results.")
+
+            except Exception as e:
+                st.error(f"Error processing document: {str(e)}")
+            finally:
+                # Clean up temporary file
+                if os.path.exists(tmp_file_path):
+                    os.unlink(tmp_file_path)
+
+elif st.session_state.active_tab == "Analysis":
+    st.header("Similar Legal Cases")
+    
+    if not st.session_state.similar_cases:
+        st.info("Please upload a document in the 'Upload' tab to see similar cases.")
+    else:
+        # Display similar cases
+        for i, case in enumerate(st.session_state.similar_cases):
+            with st.container():
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.subheader(case['title'])
+                    st.caption(f"Case ID: {case['case_id']} | Judgment Date: {case['judgment_date']}")
+                    st.write(case['summary'])
+                    st.caption(f"Outcome: {case['outcome']}")
+                
+                with col2:
+                    st.metric("Similarity", f"{case['similarity']:.2f}")
+        
+        # Display visualization
+        st.subheader("Case Similarity Analysis")
+        plot_case_similarity(st.session_state.similar_cases)
+
+elif st.session_state.active_tab == "Judge":
+    st.header("AI Judgment Prediction")
+    
+    if not st.session_state.judgment_prediction:
+        st.info("Please upload a document in the 'Upload' tab to see judgment predictions.")
+    else:
+        prediction = st.session_state.judgment_prediction
+        
+        # Summary, Legal Analysis, Confidence tabs
+        pred_tab1, pred_tab2, pred_tab3 = st.tabs(["Summary", "Legal Analysis", "Confidence Assessment"])
+        
+        with pred_tab1:
+            st.markdown(f"<h2 style='text-align: center;'>Predicted Judgment</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align: center; color: #FFD700;'>{prediction['prediction']}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center;'>Confidence: <strong>{prediction['confidence']*100:.1f}%</strong></p>", unsafe_allow_html=True)
+            
+            # Display enhanced analysis if available
+            if 'enhanced_analysis' in st.session_state and st.session_state.enhanced_analysis:
+                enhanced = st.session_state.enhanced_analysis
+                st.subheader("Enhanced Analysis by GPT-4o")
+                
+                st.write("**AI-Enhanced Judgment Analysis:**")
+                st.write(enhanced['outcome_analysis'])
+                
+                st.write("**Legal Principles Analysis:**")
+                st.write(enhanced['legal_principles_analysis'])
+                
+                st.write("**Strategic Recommendations:**")
+                st.write(enhanced['recommendations'])
+        
+        with pred_tab2:
+            # Legal Analysis with detailed legal reasoning
+            st.subheader("Applicable Legal Principles")
+            for principle in prediction['legal_principles']:
+                st.info(principle)
+            
+            st.subheader("Liability Determination")
+            st.write(prediction['liability_determination'])
+            
+            st.subheader("Similar Precedents")
+            for precedent in prediction['similar_precedents']:
+                # Find matching case
+                matching_case = next((case for case in st.session_state.similar_cases 
+                                     if case['case_id'] == precedent['case_id']), None)
+                if matching_case:
+                    st.write(f"**{matching_case['title']}**")
+                    st.caption(f"Case ID: {precedent['case_id']} | Relevance: {precedent['relevance']:.2f}")
+        
+        with pred_tab3:
+            # Confidence Assessment
+            st.subheader("Prediction Confidence Assessment")
+            
+            # Confidence visualization
+            confidence = prediction['confidence']
+            st.progress(confidence)
+            
+            st.write("**Confidence Analysis:**")
+            st.write("The confidence score is calculated based on:")
+            st.markdown("- Similarity with precedent cases\n- Consistency of outcomes in similar cases\n- Strength of legal principles application\n- Clarity of factual circumstances")
+            
+            st.write("**Interpretation:**")
+            if confidence >= 0.7:
+                st.success("This prediction has high confidence and is likely reliable.")
+            elif confidence >= 0.5:
+                st.warning("This prediction has moderate confidence, consider additional legal research.")
+            else:
+                st.error("This prediction has low confidence due to limited similar precedents or conflicting legal principles.")
+
+# Sidebar for system information
 st.sidebar.header("Settings")
 
 # Check system information and dependencies
@@ -102,1019 +816,3 @@ else:
             st.sidebar.success("API Key set! Please refresh the page to use OpenAI features.")
             from utils.openai_integration import initialize_openai
             OPENAI_AVAILABLE = initialize_openai()
-
-# Import other dependencies after displaying system information
-from utils.pdf_processor import extract_text_from_pdf
-from utils.vector_store import VectorStore
-from utils.judgment_predictor import predict_judgment
-from utils.visualization import plot_case_similarity
-
-# background color 
-st.markdown("""
-    <style>
-        .stApp {
-            background: linear-gradient(to right, #1d1a39, #e8bcb9);
-            color: black;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-
-# Main content area with tabs
-tabs = st.tabs(["Home","About","Upload Document", "Similar Cases", "Judgment Prediction"])#, "Search Cases", "Training"])
-
-with tabs[0]:
-   html_code = """
-    <div style="
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: linear-gradient(to right, rgba(123, 187, 255, 0.8), rgba(255, 255, 255, 0.8));
-      padding: 60px 80px;
-      border-radius: 40px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-      font-family: 'Segoe UI', sans-serif;
-      backdrop-filter: blur(10px);
-    ">
-
-      <div style="flex: 1; padding-right: 50px;">
-        <h1 style="
-          color: #050f2a;
-          font-size: 60px;
-          margin: 0 0 20px;
-          line-height: 1.2;
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        ">
-          Welcome to the <br> Virtual Court
-        </h1>
-        <p style="
-          color: #333;
-          font-size: 20px;
-          max-width: 500px;
-        ">
-          Experience the future of justice from the comfort of your screen.
-        </p>
-      </div>
-
-      <div style="flex: 1; text-align: right;">
-        <img src="https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/14AD5/production/_95739648_gettyimages-487787078.jpg"
-             alt="Courtroom Image"
-             style="
-               max-width: 100%;
-               height: auto;
-               border-radius: 16px;
-               box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-               transition: transform 0.3s ease;
-             "
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'"
-        />
-      </div>
-
-    </div>
-    """
-   st.html(html_code)
-
-    #st.code(html_code,language="html")
-
-with tabs[1]:
-    st.markdown("""
-        <style>
-            .about-container {
-                background: linear-gradient(135deg, #1b263b 0%, #293b5f 100%);
-                border-radius: 30px;
-                padding: 50px 40px;
-                color: #f2fdff;
-                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-                font-family: 'Segoe UI', sans-serif;
-                max-width: 1000px;
-                margin: auto;
-                animation: fadeIn 1.5s ease-in-out;
-            }
-
-            .about-title {
-                font-size: 60px;
-                color: #7bbbff;
-                text-align: center;
-                margin-bottom: 30px;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-            }
-
-            .about-text {
-                font-size: 18px;
-                line-height: 1.75;
-                text-align: justify;
-                color: #e0f7ff;
-            }
-
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(30px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-
-            @media (max-width: 768px) {
-                .about-title {
-                    font-size: 38px;
-                }
-                .about-text {
-                    font-size: 16px;
-                }
-            }
-        </style>
-
-        <div class="about-container">
-            <div class="about-title">ABOUT US</div>
-            <div class="about-text">
-                <strong>Virtual Court</strong> is an AI-powered legal assistance platform that leverages a fine-tuned LegalBERT model to streamline judicial processes and support legal analysis.
-                <br><br>
-                This application is designed to analyze uploaded legal documents—such as case descriptions, petitions, or judgments—and extract key legal semantics. It then searches the Delhi High Court case database to identify the most relevant precedents based on contextual and legal similarity.
-                <br><br>
-                By comparing the current case with historical judgments, the system predicts possible outcomes, offering data-driven insights to lawyers, litigants, or researchers.
-                <br><br>
-                The integration of Natural Language Processing (NLP) with legal domain knowledge enables Virtual Court to provide meaningful case recommendations, enhance legal research efficiency, and simulate judgment reasoning in a virtual environment.
-                <br><br>
-                This system represents a significant step toward digital transformation in the judiciary by making legal intelligence more accessible, transparent, and scalable.
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-
-with tabs[2]:
-    st.markdown("""
-<style>
-.custom-header {
-    font-size: 45px;
-    font-weight: bold;
-    color: #050f2a;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-.subtext {
-    font-size: 20px;
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: -10px;
-}
-</style>
-
-<div class="custom-header">Upload Legal Document</div>
-""", unsafe_allow_html=True)
-
-    # Custom CSS & HTML for PDF Upload
-    upload_html = """
-    <style>
-    .upload-card {
-        background-color: rgba(123, 187, 255, 0.8);
-        border: #c3c3c3;
-        padding: 30px;
-        border-radius: 12px;
-        text-align: center;
-        transition: 0.3s;
-    }
-    .upload-card:hover {
-        border-color: #e8bcb9;
-        background-color: rgba(255, 255, 255, 0.8);
-    }
-    .upload-icon {
-        font-size: 100px;
-        color: #4a90e2;
-    }
-    .upload-text {
-        font-size: 18px;
-        color: #333;
-        margin-top: 10px;
-    }
-    </style>
-
-    <div class="upload-card">
-        <div class="upload-icon">📄</div>
-        <div class="upload-text"><strong>Upload your Legal Document (PDF)</strong></div>
-        <p style="color: #666;">Only PDF files are supported. Max size: 20MB</p>
-    </div>
-    """
-
-    # Display custom upload UI
-    st.markdown(upload_html, unsafe_allow_html=True)
-
-    # Streamlit uploader (functional, underneath styled block)
-    uploaded_file = st.file_uploader("Choose PDF", type=["pdf"], label_visibility="collapsed")
-
-    if uploaded_file is not None:
-        st.success("✅ PDF uploaded successfully!")
-        # (Optional) You can process the file here
-
-        if uploaded_file is not None:
-            with st.spinner("Processing document..."):
-                # Save the uploaded file temporarily
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(uploaded_file.getvalue())
-                    tmp_file_path = tmp_file.name
-
-                try:
-                    # Extract text from PDF
-                    document_text = extract_text_from_pdf(tmp_file_path)
-
-                    # Display document preview
-                    st.subheader("Document Preview")
-                    preview_text = document_text[:1000] + "..." if len(document_text) > 1000 else document_text
-                    st.text_area("Document Content (Preview)", preview_text, height=250)
-
-                    # Generate document summary with OpenAI if available
-                    if OPENAI_AVAILABLE:
-                        with st.spinner("Generating document summary with GPT-4o..."):
-                            try:
-                                summary = generate_summary(document_text, max_words=300)
-                                st.subheader("AI-Generated Document Summary")
-                                st.info(summary)
-                            except Exception as e:
-                                st.error(f"Error generating document summary: {str(e)}")
-
-                    # Save processed document in session state for other tabs
-                    st.session_state.processed_document = document_text
-
-                    # Initialize vector store and find similar cases
-                    vector_store = VectorStore()
-                    st.session_state.similar_cases = vector_store.find_similar_cases(document_text, top_k=5)
-
-                    # Generate judgment prediction
-                    st.session_state.judgment_prediction = predict_judgment(document_text, st.session_state.similar_cases)
-
-                    # If OpenAI is available, enhance the analysis with GPT-4o
-                    if OPENAI_AVAILABLE and 'judgment_prediction' in st.session_state:
-                        with st.spinner("Enhancing analysis with GPT-4o..."):
-                            try:
-                                enhanced_analysis = enhance_legal_analysis(
-                                    document_text=document_text,
-                                    predicted_outcome=st.session_state.judgment_prediction['prediction'],
-                                    confidence=st.session_state.judgment_prediction['confidence'],
-                                    legal_principles=st.session_state.judgment_prediction['legal_principles'],
-                                    liability_determination=st.session_state.judgment_prediction['liability_determination']
-                                )
-
-                                # Add enhanced analysis to the judgment prediction
-                                if enhanced_analysis.get('enhanced', False):
-                                    st.session_state.judgment_prediction['enhanced_analysis'] = enhanced_analysis
-                                    st.success("Enhanced legal analysis with GPT-4o generated successfully!")
-                            except Exception as e:
-                                st.warning(f"OpenAI enhancement failed: {str(e)}")
-
-                    st.success("Document processed successfully! Navigate to the 'Similar Cases' and 'Judgment Prediction' tabs to see results.")
-
-                except Exception as e:
-                    st.error(f"Error processing document: {str(e)}")
-                    import traceback
-                    st.code(traceback.format_exc())
-
-                finally:
-                    # Clean up the temporary file
-                    if os.path.exists(tmp_file_path):
-                        os.unlink(tmp_file_path)
-        else:
-            st.info("Please upload a PDF document to begin analysis.")
-
-with tabs[3]:
-    st.markdown("""
-<style>
-.custom-header {
-    font-size: 45px;
-    font-weight: bold;
-    color: #050f2a;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-.subtext {
-    font-size: 20px;
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: -10px;
-}
-</style>
-
-<div class="custom-header">Similar Cases</div>
-""", unsafe_allow_html=True)
-
-    
-    if st.session_state.similar_cases is not None:
-        st.subheader("Top Similar Cases from Delhi High Court")
-        
-        for i, case in enumerate(st.session_state.similar_cases):
-            with st.expander(f"Case #{i+1}: {case['title']} ({case['similarity_score']:.2f} similarity)"):
-                st.markdown(f"**Case Number:** {case['case_number']}")
-                st.markdown(f"**Date:** {case['date']}")
-                st.markdown(f"**Judges:** {case['judges']}")
-                st.markdown("**Summary:**")
-                st.markdown(case['summary'])
-                st.markdown("**Key Points:**")
-                for point in case['key_points']:
-                    st.markdown(f"- {point}")
-        
-        # Visualization of case similarity
-        st.subheader("Case Similarity Visualization")
-        fig = plot_case_similarity(st.session_state.similar_cases)
-        st.pyplot(fig)
-    else:
-        st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
-
-import streamlit.components.v1 as components
-
-# ... (your other imports would go here)
-
-with tabs[4]:
-    st.markdown("""
-    <style>
-    .custom-header {
-        font-size: 45px;
-        font-weight: bold;
-        color: #050f2a;
-        text-align: center;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    .subtext {
-        font-size: 20px;
-        color: #7f8c8d;
-        text-align: center;
-        margin-top: -10px;
-    }
-    /* Custom style for our judge container */
-    .judge-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 20px 0;
-        padding: 10px;
-        border-radius: 10px;
-        background-color: #f0f4f8;
-    }
-    /* Style for the speak button */
-    .speak-button {
-        background-color: #3a3a8c;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-align: center;
-        margin: 10px 0;
-        cursor: pointer;
-        font-weight: bold;
-    }
-    </style>
-
-    <div class="custom-header">Judgement Prediction</div>
-    """, unsafe_allow_html=True)
-
-    if st.session_state.get('judgment_prediction') is not None:
-        st.subheader("Predicted Judgment")
-        
-        # Create tabs for different views of the judgment
-        tab_options = ["Summary", "Detailed Analysis", "Professional Judgment", "Legal Principles", "Case Parties & References"]
-        
-        # Add Enhanced Analysis tab if OpenAI analysis is available
-        if 'enhanced_analysis' in st.session_state.judgment_prediction:
-            tab_options.append("AI-Enhanced Analysis")
-            
-        judgment_tabs = st.tabs(tab_options)
-        
-        # Get the judgment summary for the speaking judge
-        judgment_summary = f"""
-        Prediction: {st.session_state.judgment_prediction['prediction']}
-        Confidence Score: {st.session_state.judgment_prediction['confidence']:.2f}
-        
-        Key reasoning: {st.session_state.judgment_prediction['reasoning'][:200]}...
-        """
-        
-        # Create a container for the judge
-        with judgment_tabs[0]:
-            # First add the judge mascot using HTML component
-            st.markdown("### Speaking Judge Mascot")
-            st.markdown("Click the button below to have the judge speak the judgment prediction.")
-            
-            # Create a container for the judge HTML component
-            judge_container = st.container()
-            
-            # Generate unique HTML for the speaking judge
-            judge_html = """
-            <div class="judge-container">
-              <div id="judge-component">
-                <svg id="judgeSvg" width="300" height="400" viewBox="0 0 300 400">
-                  <!-- Court Background -->
-                  <rect x="0" y="0" width="300" height="400" fill="#2a1506" />
-                  <rect x="20" y="20" width="260" height="200" fill="#402010" />
-                  <rect x="40" y="40" width="220" height="160" fill="#8B4513" />
-                  <path d="M50 50 L250 50 L250 190 L50 190 Z" fill="#5c2c0d" />
-                  
-                  <!-- Indian Flag -->
-                  <rect x="230" y="70" width="30" height="10" fill="#ffa652" />
-                  <rect x="230" y="80" width="30" height="10" fill="#fff" />
-                  <rect x="230" y="90" width="30" height="10" fill="#52a447" />
-                  <rect x="230" y="100" width="30" height="10" fill="#fff" />
-                  <rect x="230" y="110" width="30" height="10" fill="#ffa652" />
-                  
-                  <!-- Judge's Bench -->
-                  <rect x="50" y="200" width="200" height="180" fill="#4d2c09" />
-                  <rect x="60" y="210" width="180" height="160" fill="#754c24" rx="5" ry="5" />
-                  <rect x="70" y="220" width="160" height="30" fill="#5c391c" />
-                  
-                  <!-- Judge's Body / Robe -->
-                  <path class="judge-robe" d="M90 170 L90 350 L210 350 L210 170 C170 190 130 190 90 170 Z" fill="#000022" stroke="#333" stroke-width="1" />
-                  
-                  <!-- Judge's Red Tie -->
-                  <path d="M140 180 L130 250 L150 280 L170 250 L160 180 Z" fill="#cc0000" stroke="#aa0000" stroke-width="1" />
-                  <path d="M140 180 L160 180 L150 190 Z" fill="#aa0000" />
-                  
-                  <!-- Judge's Shirt/Collar -->
-                  <path d="M110 170 L190 170 L190 190 L110 190 Z" fill="white" stroke="#ddd" stroke-width="0.5" />
-                  <path d="M140 180 L140 220 L160 220 L160 180 Z" fill="white" stroke="#ddd" stroke-width="0.5" />
-
-                  <!-- Judge's Face -->
-                  <ellipse class="judge-face" cx="150" cy="110" rx="45" ry="50" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
-
-                  <!-- Judge's Ears -->
-                  <ellipse class="judge-face" cx="105" cy="110" rx="8" ry="15" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
-                  <ellipse class="judge-face" cx="195" cy="110" rx="8" ry="15" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
-
-                  <!-- Judge's Neck -->
-                  <path class="judge-face" d="M140 150 L140 180 L160 180 L160 150 Z" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" />
-                  
-                  <!-- Judge's Black Judicial Wig -->
-                  <!-- Wig Base -->
-                  <path class="judge-hair" d="M100 70 Q100 40 150 40 Q200 40 200 70 L200 120 Q200 130 190 130 L110 130 Q100 130 100 120 Z" fill="#111" stroke="#333" stroke-width="0.5" />
-                  
-                  <!-- Wig Curls - Top -->
-                  <path d="M105 50 Q110 40 115 50 Q120 40 125 50 Q130 40 135 50 Q140 40 145 50 Q150 40 155 50 Q160 40 165 50 Q170 40 175 50 Q180 40 185 50 Q190 40 195 50" fill="#222" stroke="#333" stroke-width="0.5" />
-                  
-                  <!-- Wig Curls - Sides -->
-                  <path d="M100 70 Q95 75 100 80 Q95 85 100 90 Q95 95 100 100 Q95 105 100 110 Q95 115 100 120" fill="#222" stroke="#333" stroke-width="0.5" />
-                  <path d="M200 70 Q205 75 200 80 Q205 85 200 90 Q205 95 200 100 Q205 105 200 110 Q205 115 200 120" fill="#222" stroke="#333" stroke-width="0.5" />
-                  
-                  <!-- Judge's Eyes with tensed expression -->
-                  <ellipse cx="135" cy="100" rx="8" ry="5" fill="white" stroke="black" stroke-width="1" />
-                  <ellipse cx="165" cy="100" rx="8" ry="5" fill="white" stroke="black" stroke-width="1" />
-                  <circle cx="135" cy="100" r="3" />
-                  <circle cx="165" cy="100" r="3" />
-                  <circle cx="134" cy="99" r="1" fill="white" />
-                  <circle cx="164" cy="99" r="1" fill="white" />
-                  
-                  <!-- Judge's Eyebrows - tensed expression -->
-                  <path d="M120 85 Q135 80 150 85" stroke="black" stroke-width="2" fill="none" />
-                  <path d="M150 85 Q165 80 180 85" stroke="black" stroke-width="2" fill="none" />
-                  
-                  <!-- Judge's Nose -->
-                  <path d="M150 105 L145 120 L155 120 Z" stroke="#d4b6a0" stroke-width="1" fill="#e6c7b3" />
-                  
-                  <!-- Stress lines on forehead -->
-                  <path d="M130 75 L140 78" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
-                  <path d="M160 78 L170 75" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
-                  <path d="M145 70 L155 70" stroke="#d4b6a0" stroke-width="0.5" fill="none" />
-                  
-                  <!-- Judge's Mouth (will be animated) -->
-                  <path id="mouth" class="mouth" d="M135 135 Q150 140 165 135" stroke="#a87b6d" stroke-width="1.5" fill="none" />
-                  
-                  <!-- Judge's Gavel in hand -->
-                  <path d="M190 300 Q200 290 210 300 L220 320 Q210 330 200 320 Z" fill="#f8d5c2" stroke="#d4b6a0" stroke-width="0.5" /><!-- Hand -->
-                  <rect id="gavel-handle" x="200" y="285" width="8" height="50" rx="2" fill="#5c2c0d" stroke="#3d1d08" stroke-width="0.5" />
-                  <path id="gavel-head" d="M190 275 L220 275 L220 285 L190 285 Z" fill="#8b4513" stroke="#5c2c0d" stroke-width="0.5" />
-                </svg>
-                
-                <div id="speechBubble" style="position: absolute; top: 30px; right: -150px; background-color: white; border-radius: 20px; padding: 15px; width: 200px; min-height: 80px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: none; z-index: 10; font-family: 'Georgia', serif; font-style: italic;">
-                  <p id="speechText"></p>
-                </div>
-              </div>
-              
-              <button id="speakButton" style="padding: 12px 20px; background-color: #3a3a8c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px;">Have Judge Announce Verdict</button>
-              <p id="status" style="font-style: italic; color: #444; margin-top: 5px;">Ready to speak</p>
-            </div>
-
-            <script>
-              // Store the judgment text for the speech
-              const judgmentText = `""" + judgment_summary.replace("`", "'").replace("\"", "'") + """`;
-              
-              // Get the speech bubble and other elements
-              const speechBubble = document.getElementById('speechBubble');
-              const speechText = document.getElementById('speechText');
-              const speakButton = document.getElementById('speakButton');
-              const mouth = document.getElementById('mouth');
-              const status = document.getElementById('status');
-              const gavelHead = document.getElementById('gavel-head');
-              const gavelHandle = document.getElementById('gavel-handle');
-              
-              // Check if browser supports speech synthesis
-              const synth = window.speechSynthesis;
-              let speaking = false;
-              
-              // Animation frames for mouth movement with more natural curves
-              const mouthClosed = "M135 135 Q150 140 165 135";
-              const mouthOpen = "M135 135 Q150 155 165 135";
-              const mouthHalfOpen = "M135 135 Q150 145 165 135";
-              const mouthTense = "M135 138 Q150 136 165 138";
-              
-              // Get all voices and select a deep male voice if available
-              let voices = [];
-              function populateVoiceList() {
-                voices = synth.getVoices();
-              }
-              
-              if (synth.onvoiceschanged !== undefined) {
-                synth.onvoiceschanged = populateVoiceList;
-              }
-              populateVoiceList();
-              
-              // Function to find the best judicial voice (deep male voice)
-              function findJudicialVoice() {
-                // Default to first voice
-                let judicialVoice = voices[0];
-                
-                // Try to find a deep male English voice
-                for (let voice of voices) {
-                  if (voice.lang.includes('en') && voice.name.toLowerCase().includes('male')) {
-                    judicialVoice = voice;
-                    break;
-                  }
-                }
-                
-                return judicialVoice;
-              }
-              
-              speakButton.addEventListener('click', () => {
-                if (speaking) {
-                  synth.cancel();
-                  resetJudge();
-                  return;
-                }
-                
-                // Show speech bubble with text
-                speechText.textContent = judgmentText;
-                speechBubble.style.display = 'block';
-                
-                // Update button text
-                speakButton.textContent = "Stop Speaking";
-                
-                // Animate the judge
-                speaking = true;
-                status.textContent = "Judge is speaking...";
-                
-                // Start mouth and eyebrow animations
-                animateMouth();
-                animateEyebrows();
-                
-                // Use speech synthesis if available
-                if (synth) {
-                  const utterance = new SpeechSynthesisUtterance(judgmentText);
-                  utterance.rate = 0.85; // Slower for judge-like gravitas
-                  utterance.pitch = 0.7; // Deeper voice
-                  
-                  // Try to use a judicial voice
-                  const judicialVoice = findJudicialVoice();
-                  if (judicialVoice) {
-                    utterance.voice = judicialVoice;
-                  }
-                  
-                  utterance.onend = () => {
-                    resetJudge();
-                  };
-                  
-                  // Add gavel animation
-                  gavelInterval = setInterval(animateGavel, 1500);
-                  
-                  // Add word boundary event to sync mouth with speech
-                  utterance.onboundary = (event) => {
-                    if (event.name === 'word') {
-                      // Open mouth more at the beginning of each word
-                      mouth.setAttribute('d', mouthOpen);
-                      setTimeout(() => {
-                        if (speaking) {
-                          mouth.setAttribute('d', Math.random() > 0.5 ? mouthHalfOpen : mouthClosed);
-                        }
-                      }, 100);
-                    }
-                  };
-                  
-                  synth.speak(utterance);
-                } else {
-                  // If speech synthesis is not available, just animate for a few seconds
-                  setTimeout(resetJudge, 5000);
-                }
-              });
-              
-              // More natural lip-synced mouth animation
-              function animateMouth() {
-                if (!speaking) return;
-                
-                // More realistic speaking pattern
-                const mouthPositions = [
-                  mouthOpen, mouthHalfOpen, mouthClosed, mouthHalfOpen, 
-                  mouthOpen, mouthClosed, mouthTense, mouthHalfOpen
-                ];
-                
-                const randomIndex = Math.floor(Math.random() * mouthPositions.length);
-                mouth.setAttribute('d', mouthPositions[randomIndex]);
-                
-                // Vary the animation speed for more natural speech
-                const animationSpeed = 80 + Math.random() * 120;
-                setTimeout(animateMouth, animationSpeed);
-              }
-              
-              // Add eyebrow animation for tensed expression
-              function animateEyebrows() {
-                if (!speaking) return;
-                
-                const eyebrows = document.querySelectorAll('path[stroke="black"][stroke-width="2"]');
-                
-                // Create tensed expressions by moving eyebrows
-                if (Math.random() > 0.7) {
-                  // More furrowed brow
-                  eyebrows[0].setAttribute('d', 'M120 83 Q135 78 150 83');
-                  eyebrows[1].setAttribute('d', 'M150 83 Q165 78 180 83');
-                } else if (Math.random() > 0.4) {
-                  // Slightly raised eyebrows for emphasis
-                  eyebrows[0].setAttribute('d', 'M120 82 Q135 76 150 82');
-                  eyebrows[1].setAttribute('d', 'M150 82 Q165 76 180 82');
-                } else {
-                  // Return to neutral-tense
-                  eyebrows[0].setAttribute('d', 'M120 85 Q135 80 150 85');
-                  eyebrows[1].setAttribute('d', 'M150 85 Q165 80 180 85');
-                }
-                
-                // Continue animation while speaking
-                setTimeout(animateEyebrows, 800 + Math.random() * 700);
-              }
-              
-              // Reset judge to original state
-              function resetJudge() {
-                speaking = false;
-                mouth.setAttribute('d', mouthTense); // Keep tense expression when not speaking
-                speechBubble.style.display = 'none';
-                speakButton.textContent = "Have Judge Announce Verdict";
-                status.textContent = "Ready to speak";
-                
-                // Reset eyebrows to tense position
-                const eyebrows = document.querySelectorAll('path[stroke="black"][stroke-width="2"]');
-                eyebrows[0].setAttribute('d', 'M120 85 Q135 80 150 85');
-                eyebrows[1].setAttribute('d', 'M150 85 Q165 80 180 85');
-                
-                // Reset gavel
-                clearInterval(gavelInterval);
-                gavelHead.setAttribute('transform', '');
-                gavelHandle.setAttribute('transform', '');
-              }
-              
-              // Improved gavel animation with the gavel in hand
-              let gavelInterval;
-              
-              function animateGavel() {
-                if (!speaking) return;
-                
-                // Rotate gavel for striking motion
-                gavelHead.setAttribute('transform', 'rotate(-30 190 280)');
-                gavelHandle.setAttribute('transform', 'rotate(-30 190 280)');
-                
-                setTimeout(() => {
-                  // Return to normal position
-                  gavelHead.setAttribute('transform', '');
-                  gavelHandle.setAttribute('transform', '');
-                  
-                  // Optional: Add strike effect (visual flash)
-                  const flash = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                  flash.setAttribute("x", "180");
-                  flash.setAttribute("y", "265");
-                  flash.setAttribute("width", "50");
-                  flash.setAttribute("height", "20");
-                  flash.setAttribute("fill", "white");
-                  flash.setAttribute("opacity", "0.6");
-                  document.getElementById("judgeSvg").appendChild(flash);
-                  
-                  // Remove flash effect after a short time
-                  setTimeout(() => {
-                    if (flash.parentNode) {
-                      flash.parentNode.removeChild(flash);
-                    }
-                  }, 100);
-                }, 200);
-              }
-              
-              // Set initial tensed expression
-              window.onload = function() {
-                mouth.setAttribute('d', mouthTense);
-              }
-            </script>
-            """
-            
-            # Inject HTML component into the Streamlit app
-            components.html(judge_html, height=500)
-            
-            # Display confidence score
-            st.markdown(f"**Confidence Score:** {st.session_state.judgment_prediction['confidence']:.2f}")
-            
-            # Display prediction category (e.g., Allowed, Dismissed, etc.)
-            st.markdown(f"**Prediction:** {st.session_state.judgment_prediction['prediction']}")
-            
-            # Display parties if available
-            if 'parties' in st.session_state.judgment_prediction and st.session_state.judgment_prediction['parties']:
-                parties = st.session_state.judgment_prediction['parties']
-                st.subheader("Case Parties")
-                if parties.get('petitioner'):
-                    st.markdown(f"**Petitioner/Appellant:** {parties.get('petitioner')}")
-                if parties.get('respondent'):
-                    st.markdown(f"**Respondent/Defendant:** {parties.get('respondent')}")
-            
-            # Get case type from judgment prediction if available
-            case_type = st.session_state.judgment_prediction.get('case_type', 'General Case')
-            
-            # Display case type context with OpenAI if available
-            if 'OPENAI_AVAILABLE' in globals() and OPENAI_AVAILABLE:
-                try:
-                    with st.expander("Legal context for this case type", expanded=True):
-                        case_context = get_legal_context(case_type, "Delhi High Court")
-                        st.markdown(case_context)
-                except Exception as e:
-                    st.warning(f"Could not fetch case type context: {str(e)}")
-            
-            # Display reasoning
-            st.subheader("Reasoning")
-            st.markdown(st.session_state.judgment_prediction['reasoning'])
-            
-            # Display relevant precedents
-            st.subheader("Relevant Precedents")
-            for precedent in st.session_state.judgment_prediction['precedents']:
-                st.markdown(f"- **{precedent['case']}**: {precedent['relevance']}")
-        
-        # The remaining tabs are unchanged from the original code
-        with judgment_tabs[1]:
-            # Display liability determination
-            if 'liability_determination' in st.session_state.judgment_prediction:
-                liability = st.session_state.judgment_prediction['liability_determination']
-                
-                st.subheader("Liability Determination")
-                
-                if liability.get('primary_liability'):
-                    st.markdown(f"**Primary Liability:** {liability.get('primary_liability')}")
-                    
-                if liability.get('secondary_liability'):
-                    st.markdown(f"**Secondary Liability:** {liability.get('secondary_liability')}")
-                    
-                if liability.get('liability_ratio'):
-                    st.markdown(f"**Liability Ratio:** {liability.get('liability_ratio')}")
-                    
-                st.markdown(f"**Petitioner Claims Established:** {liability.get('petitioner_claims_established', 'Unknown')}")
-                st.markdown(f"**Respondent Defense Valid:** {liability.get('respondent_defense_valid', 'Unknown')}")
-                
-                # Display key findings
-                if 'key_findings' in liability and liability['key_findings']:
-                    st.subheader("Key Findings of Fact")
-                    for i, finding in enumerate(liability['key_findings'], 1):
-                        st.markdown(f"{i}. {finding}")
-            else:
-                st.info("Detailed liability analysis not available for this document.")
-                
-            # Display legal remedy
-            if 'legal_remedy' in st.session_state.judgment_prediction:
-                st.subheader("Legal Remedy")
-                st.markdown(st.session_state.judgment_prediction['legal_remedy'])
-            else:
-                st.info("Legal remedy recommendations not available for this document.")
-                
-        with judgment_tabs[2]:
-            # Display professional analysis
-            if 'professional_analysis' in st.session_state.judgment_prediction:
-                st.markdown(st.session_state.judgment_prediction['professional_analysis'])
-            else:
-                st.info("Professional legal analysis not available for this document.")
-                
-        with judgment_tabs[3]:
-            # Display legal principles applied
-            st.subheader("Legal Principles Applied")
-            for principle in st.session_state.judgment_prediction['legal_principles']:
-                st.markdown(f"- {principle}")
-        
-        with judgment_tabs[4]:
-            # Display detailed party information
-            if 'parties' in st.session_state.judgment_prediction and st.session_state.judgment_prediction['parties']:
-                parties = st.session_state.judgment_prediction['parties']
-                st.subheader("Case Parties")
-                st.markdown(f"**Petitioner/Appellant:** {parties.get('petitioner', 'Not identified')}")
-                st.markdown(f"**Respondent/Defendant:** {parties.get('respondent', 'Not identified')}")
-            else:
-                st.info("Party information could not be extracted from this document.")
-            
-            # Display legal references
-            if 'legal_references' in st.session_state.judgment_prediction and st.session_state.judgment_prediction['legal_references']:
-                legal_refs = st.session_state.judgment_prediction['legal_references']
-                
-                st.subheader("Legal References")
-                if len(legal_refs) > 0:
-                    # Create a table for legal references
-                    st.markdown("| Statute/Law | Section/Article | Full Reference |")
-                    st.markdown("|-------------|----------------|----------------|")
-                    
-                    for ref in legal_refs:
-                        statute = ref.get('statute', 'Unknown')
-                        section = ref.get('section', 'Unknown')
-                        full_ref = ref.get('full_reference', 'Unknown')
-                        
-                        st.markdown(f"| {statute} | {section} | {full_ref} |")
-                else:
-                    st.info("No specific legal statutes or sections were identified in this document.")
-            else:
-                st.info("Legal references could not be extracted from this document.")
-        
-        # Display AI-Enhanced analysis if available
-        if 'enhanced_analysis' in st.session_state.judgment_prediction and len(tab_options) > 5:
-            with judgment_tabs[5]:
-                enhanced = st.session_state.judgment_prediction['enhanced_analysis']
-                
-                st.subheader("AI-Enhanced Legal Analysis 🤖")
-                st.info("This analysis is powered by OpenAI's GPT-4o model, providing a professional legal perspective on the case.")
-                
-                # Display the comprehensive analysis
-                if 'comprehensive_analysis' in enhanced:
-                    st.subheader("Comprehensive Analysis")
-                    st.markdown(enhanced['comprehensive_analysis'])
-                
-                # Display the relevant citations
-                if 'relevant_citations' in enhanced and enhanced['relevant_citations']:
-                    st.subheader("Relevant Citations")
-                    for citation in enhanced['relevant_citations']:
-                        st.markdown(f"- {citation}")
-                
-                # Display the recommended remedies
-                if 'recommended_remedies' in enhanced and enhanced['recommended_remedies']:
-                    st.subheader("Recommended Remedies")
-                    for remedy in enhanced['recommended_remedies']:
-                        st.markdown(f"- {remedy}")
-                
-                # Display key considerations
-                if 'key_considerations' in enhanced and enhanced['key_considerations']:
-                    st.subheader("Key Legal Considerations")
-                    for consideration in enhanced['key_considerations']:
-                        st.markdown(f"- {consideration}")
-        
-        # Disclaimer
-        st.warning("""
-        **Disclaimer:** This prediction is based on machine learning analysis of similar cases and should not be 
-        considered legal advice. The prediction is meant to provide insight into possible outcomes based on 
-        historical data, but each case is unique and may have different outcomes in court.
-        """)
-    else:
-        st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
-#with tabs[5]:
-#    st.header("Search Cases")
-#    
-#    search_query = st.text_input("Search for cases by keyword or phrase:", value=st.session_state.search_query)
-#    
-#    if st.button("Search") or search_query != st.session_state.search_query:
-#        st.session_state.search_query = search_query
-#        
-#        if search_query:
-#            with st.spinner("Searching cases..."):
-#                # Initialize vector store and search for cases
-#                vector_store = VectorStore()
-#                search_results = vector_store.search_cases(search_query, top_k=10)
-#                
-#                if search_results:
-#                    st.subheader(f"Found {len(search_results)} relevant cases")
-#                    
-#                    for i, case in enumerate(search_results):
-#                        with st.expander(f"Case #{i+1}: {case['title']} (Relevance: {case['relevance_score']:.2f})"):
-#                            st.markdown(f"**Case Number:** {case['case_number']}")
-#                            st.markdown(f"**Date:** {case['date']}")
-#                            st.markdown(f"**Judges:** {case['judges']}")
-#                            st.markdown("**Summary:**")
-#                            st.markdown(case['summary'])
-#                else:
-#                    st.info("No matching cases found. Try different keywords.")
-#        else:
-#            st.info("Enter keywords to search for relevant cases.")
-
-#with tabs[5]:
-#    st.header("Model Training")
-#    
-#    # Check if model is already trained
-#    model_path = "./fine_tuned_model/best_model"
-#    model_config_path = "./config/model_config.txt"
-#    
-#    if os.path.exists(model_path) and os.path.exists(model_config_path):
-#        st.success("A trained model is already available!")
-#        
-#        # Read and display model config
-#        with open(model_config_path, "r") as f:
-#            config_lines = f.readlines()
-#        
-#        config = {}
-#        for line in config_lines:
-#            if "=" in line:
-#                key, value = line.strip().split("=", 1)
-#                config[key] = value
-#        
-#        st.markdown(f"**Model Type:** {config.get('model_type', 'Unknown')}")
-#        st.markdown(f"**Training Date:** {config.get('trained_date', 'Unknown')}")
-#        
-#        if st.button("Retrain Model"):
-#            st.warning("This will overwrite the existing model. The process may take several minutes depending on your system.")
-#            st.info("Starting training process...")
-#            
-#            try:
-#                import subprocess
-#                process = subprocess.Popen([sys.executable, "run_training.py"], 
-#                                        stdout=subprocess.PIPE, 
-#                                        stderr=subprocess.STDOUT,
-#                                        text=True)
-#                
-#                # Display output in real-time
-#                output_area = st.empty()
-#                output_text = ""
-#                
-#                while True:
-#                    output = process.stdout.readline()
-#                    if output == '' and process.poll() is not None:
-#                        break
-#                    if output:
-#                        output_text += output
-#                        output_area.code(output_text)
-#                
-#                if process.returncode == 0:
-#                    st.success("Training completed successfully! The application will use the new model for predictions.")
-#                    st.info("Please restart the application to use the new model.")
-#                else:
-#                    st.error("Training failed. Please check the log for details.")
-#            
-#            except Exception as e:
-#                st.error(f"Error during training: {str(e)}")
-#    else:
-#        st.info("No trained model found. You can train a model to improve prediction accuracy.")
-#        
-#        col1, col2 = st.columns(2)
-#        
-#        with col1:
-#            st.markdown("""
-#            **Training Process:**
-#            1. The system will download a sample of Delhi High Court judgments
-#            2. Prepare and clean the data for model training
-#            3. Train a model (this may take 10-15 minutes)
-#            4. Integrate the trained model with the application
-#            """)
-#        
-#        with col2:
-#            st.markdown("""
-#            **System Requirements:**
-#            - At least 4GB of available RAM
-#            - Internet connection to download judgments
-#            - Approximately 500MB of disk space
-#            """)
-#        
-#        if st.button("Start Training"):
-#            st.info("Starting training process...")
-#            
-#            try:
-#                import subprocess
-#                process = subprocess.Popen([sys.executable, "run_training.py"], 
-#                                        stdout=subprocess.PIPE, 
-#                                        stderr=subprocess.STDOUT,
-#                                        text=True)
-#                
-#                # Display output in real-time
-#                output_area = st.empty()
-#                output_text = ""
-#                
-#                while True:
-#                    output = process.stdout.readline()
-#                    if output == '' and process.poll() is not None:
-#                        break
-#                    if output:
-#                        output_text += output
-#                        output_area.code(output_text)
-#                
-#                if process.returncode == 0:
-#                    st.success("Training completed successfully! The application will use the new model for predictions.")
-#                    st.info("Please restart the application to use the new model.")
-#                else:
-#                    st.error("Training failed. Please check the log for details.")
-#            
-#            except Exception as e:
-#                st.error(f"Error during training: {str(e)}")
-#                import traceback
-#                st.code(traceback.format_exc())
-
-# Footer information
-#st.markdown("---")
-#st.markdown("""
-#**About this application:**  
-#This Virtual Judge uses a fine-tuned LegalBERT model trained on Delhi High Court judgments to analyze legal documents
-#and provide insights based on similar historical cases. The system leverages modern NLP techniques, vector embeddings,
-#and similarity search to find relevant precedents.
-#""")
-
-# Add OpenAI attribution if it's available
-#if OPENAI_AVAILABLE:
-#    st.markdown("""
-#    **Enhanced Analysis:**  
-#    Professional legal analysis is enhanced using OpenAI's GPT-4o model, providing deeper legal context, 
-#    detailed citations, and comprehensive legal reasoning based on the document content and case patterns.
-#    """)
-#else:
-#    st.markdown("""
-#    **Want Enhanced Analysis?**  
-#    Add your OpenAI API key in the sidebar to enable GPT-4o powered legal analysis with deeper legal context,
-#    relevant citations, and comprehensive professional reasoning.
-#    """)
-#
