@@ -286,43 +286,40 @@ with tabs[2]:
         margin-top: 10px;
     }
     </style>
-    
+
     <div class="upload-card">
         <div class="upload-icon">📄</div>
         <div class="upload-text"><strong>Upload your Legal Document (PDF)</strong></div>
         <p style="color: #666;">Only PDF files are supported. Max size: 20MB</p>
     </div>
     """
-    
+
     # Display custom upload UI
     st.markdown(upload_html, unsafe_allow_html=True)
-    
+
     # Streamlit uploader (functional, underneath styled block)
     uploaded_file = st.file_uploader("Choose PDF", type=["pdf"], label_visibility="collapsed")
-    
+
     if uploaded_file is not None:
         st.success("✅ PDF uploaded successfully!")
         # (Optional) You can process the file here
-    
-        
-        uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
-        
+
         if uploaded_file is not None:
             with st.spinner("Processing document..."):
                 # Save the uploaded file temporarily
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                     tmp_file.write(uploaded_file.getvalue())
                     tmp_file_path = tmp_file.name
-                
+
                 try:
                     # Extract text from PDF
                     document_text = extract_text_from_pdf(tmp_file_path)
-                    
+
                     # Display document preview
                     st.subheader("Document Preview")
                     preview_text = document_text[:1000] + "..." if len(document_text) > 1000 else document_text
                     st.text_area("Document Content (Preview)", preview_text, height=250)
-                    
+
                     # Generate document summary with OpenAI if available
                     if OPENAI_AVAILABLE:
                         with st.spinner("Generating document summary with GPT-4o..."):
@@ -332,17 +329,17 @@ with tabs[2]:
                                 st.info(summary)
                             except Exception as e:
                                 st.error(f"Error generating document summary: {str(e)}")
-                    
+
                     # Save processed document in session state for other tabs
                     st.session_state.processed_document = document_text
-                    
+
                     # Initialize vector store and find similar cases
                     vector_store = VectorStore()
                     st.session_state.similar_cases = vector_store.find_similar_cases(document_text, top_k=5)
-                    
+
                     # Generate judgment prediction
                     st.session_state.judgment_prediction = predict_judgment(document_text, st.session_state.similar_cases)
-                    
+
                     # If OpenAI is available, enhance the analysis with GPT-4o
                     if OPENAI_AVAILABLE and 'judgment_prediction' in st.session_state:
                         with st.spinner("Enhancing analysis with GPT-4o..."):
@@ -354,21 +351,21 @@ with tabs[2]:
                                     legal_principles=st.session_state.judgment_prediction['legal_principles'],
                                     liability_determination=st.session_state.judgment_prediction['liability_determination']
                                 )
-                                
+
                                 # Add enhanced analysis to the judgment prediction
                                 if enhanced_analysis.get('enhanced', False):
                                     st.session_state.judgment_prediction['enhanced_analysis'] = enhanced_analysis
                                     st.success("Enhanced legal analysis with GPT-4o generated successfully!")
                             except Exception as e:
                                 st.warning(f"OpenAI enhancement failed: {str(e)}")
-                    
+
                     st.success("Document processed successfully! Navigate to the 'Similar Cases' and 'Judgment Prediction' tabs to see results.")
-                
+
                 except Exception as e:
                     st.error(f"Error processing document: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
-                
+
                 finally:
                     # Clean up the temporary file
                     if os.path.exists(tmp_file_path):
