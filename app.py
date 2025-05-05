@@ -242,7 +242,70 @@ with tabs[1]:
 
 
 with tabs[2]:
-    st.header("Upload Legal Document")
+    st.markdown("""
+<style>
+.custom-header {
+    font-size: 45px;
+    font-weight: bold;
+    color: #050f2a;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.subtext {
+    font-size: 20px;
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: -10px;
+}
+</style>
+
+<div class="custom-header">Upload Legal Document</div>
+""", unsafe_allow_html=True)
+
+# Custom CSS & HTML for PDF Upload
+upload_html = """
+<style>
+.upload-card {
+    background-color: rgba(123, 187, 255, 0.8);
+    border: #c3c3c3;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    transition: 0.3s;
+}
+.upload-card:hover {
+    border-color: #e8bcb9;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+.upload-icon {
+    font-size: 100px;
+    color: #4a90e2;
+}
+.upload-text {
+    font-size: 18px;
+    color: #333;
+    margin-top: 10px;
+}
+</style>
+
+<div class="upload-card">
+    <div class="upload-icon">📄</div>
+    <div class="upload-text"><strong>Upload your Legal Document (PDF)</strong></div>
+    <p style="color: #666;">Only PDF files are supported. Max size: 20MB</p>
+</div>
+"""
+
+# Display custom upload UI
+st.markdown(upload_html, unsafe_allow_html=True)
+
+# Streamlit uploader (functional, underneath styled block)
+uploaded_file = st.file_uploader("Choose PDF", type=["pdf"], label_visibility="collapsed")
+
+if uploaded_file is not None:
+    st.success("✅ PDF uploaded successfully!")
+    # (Optional) You can process the file here
+
     
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
     
@@ -316,7 +379,27 @@ with tabs[2]:
         st.info("Please upload a PDF document to begin analysis.")
 
 with tabs[3]:
-    st.header("Similar Cases")
+    st.markdown("""
+<style>
+.custom-header {
+    font-size: 45px;
+    font-weight: bold;
+    color: #050f2a;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.subtext {
+    font-size: 20px;
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: -10px;
+}
+</style>
+
+<div class="custom-header">Similar Cases</div>
+""", unsafe_allow_html=True)
+
     
     if st.session_state.similar_cases is not None:
         st.subheader("Top Similar Cases from Delhi High Court")
@@ -340,8 +423,27 @@ with tabs[3]:
         st.info("No document has been processed yet. Please upload a document in the 'Upload Document' tab.")
 
 with tabs[4]:
-    st.header("Judgment Prediction")
-    
+    st.markdown("""
+<style>
+.custom-header {
+    font-size: 45px;
+    font-weight: bold;
+    color: #050f2a;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.subtext {
+    font-size: 20px;
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: -10px;
+}
+</style>
+
+<div class="custom-header">Judgement Prediction</div>
+""", unsafe_allow_html=True)
+
     if st.session_state.judgment_prediction is not None:
         st.subheader("Predicted Judgment")
         
